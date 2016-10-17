@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka {
-
     public class Message {
         public String Key { get; private set; }
         public String Value { get; private set; }
@@ -126,7 +125,12 @@ namespace Chuye.Kafka {
             get { return _groupId; }
         }
 
-        public IEnumerable<Message> Fetch(string topic) {
+        public Consumer(String groupId) {
+            _groupId = groupId;
+        }
+
+        public IEnumerable<Message> Fetch(String topic) {
+            var fetchReq = new FetchRequest();
             throw new NotImplementedException();
         }
     }

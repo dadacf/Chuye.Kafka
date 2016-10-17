@@ -5,9 +5,6 @@ using System.Threading.Tasks;
 
 namespace Chuye.Kafka {
     //Request
-    public abstract class Request {
-    }
-
     public class MetadataRequest : Request {
     }
 
@@ -27,10 +24,6 @@ namespace Chuye.Kafka {
     }
 
     //Response
-    public abstract class Response {
-
-    }
-
     public class MetadataResponse : Response {
     }
 
