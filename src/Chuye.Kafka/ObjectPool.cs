@@ -3,86 +3,59 @@ using System.Collections.Generic;
 using System.Threading;
 
 namespace Chuye.Kafka {
-    public struct PoolState {
-        public int Constructed;
-        public int Avaliable;
-        public int Occupied;
-        public int Detached;
-    }
-
-    public class ItemCreatedEventArgs : EventArgs {
-        private readonly Object _item;
-
-        public Object Item {
-            get { return _item; }
-        }
-
-        public ItemCreatedEventArgs(Object item) {
-            _item = item;
-        }
-    }
-
-    public class ObjectPool<T> : IDisposable {
+    public abstract class ObjectPool<T> where T : class {
         private readonly Stack<T> _avaliables;
         private readonly HashSet<T> _occupies;
-        private readonly Func<T> _factory;
-        private readonly Action<T> _detacher;
         private readonly Object _sync;
 
-        private int _constructed;
-        private int _avaliable;
-        private int _occupied;
-        private int _detached;
+        private Int32 _constructed;
+        private Int32 _avaliable;
+        private Int32 _occupied;
+        private Int32 _detached;
 
-        public event EventHandler<ItemCreatedEventArgs> ItemCreated;
-
-        public PoolState State {
-            get {
-                return new PoolState {
-                    Constructed = _constructed,
-                    Avaliable = _avaliable,
-                    Occupied = _occupied,
-                    Detached = _detached,
-                };
-            }
+        public Int32 Constructed {
+            get { return _constructed; }
         }
 
-        public ObjectPool(Func<T> factory)
-            : this(factory, null) {
+        public Int32 Avaliable {
+            get { return _avaliable; }
         }
 
-        public ObjectPool(Func<T> factory, Action<T> detacher) {
-            if (factory == null) {
-                throw new ArgumentNullException("factory");
-            }
-            _detacher = detacher;
-            _factory = factory;
+        public Int32 Occupied {
+            get { return _occupied; }
+        }
+
+        public Int32 Detached {
+            get { return _detached; }
+        }
+
+        protected Stack<T> Avaliables {
+            get { return _avaliables; }
+        }
+
+        public ObjectPool() {
             _sync = new Object();
             _avaliables = new Stack<T>();
             _occupies = new HashSet<T>();
         }
 
-        public T AcquireItem() {
+        public virtual T AcquireItem() {
             lock (_sync) {
                 T item;
                 if (_avaliables.Count > 0) {
                     item = _avaliables.Pop();
                     Interlocked.Decrement(ref _avaliable);
+                    OnItemPoped(item);
                 }
                 else {
-                    item = _factory();
-                    OnItemCreated(item);
+                    item = Constructing();
+                    OnItemConstructed(item);
                     Interlocked.Increment(ref _constructed);
                 }
                 _occupies.Add(item);
                 Interlocked.Increment(ref _occupied);
+                OnItemOccupied(item);
                 return item;
-            }
-        }
-
-        protected virtual void OnItemCreated(T item) {
-            if (ItemCreated != null) {
-                ItemCreated(this, new ItemCreatedEventArgs(item));
             }
         }
 
@@ -95,6 +68,7 @@ namespace Chuye.Kafka {
                 Interlocked.Decrement(ref _occupied);
                 _avaliables.Push(item);
                 Interlocked.Increment(ref _avaliable);
+                OnItemReturned(item);
             }
         }
 
@@ -105,24 +79,35 @@ namespace Chuye.Kafka {
                     throw new InvalidOperationException("Return unknown item not supported");
                 }
                 Interlocked.Decrement(ref _occupied);
-
-                if (_detacher == null) {
-                    _detacher(item);
-                }
+                OnItemDetached(item);
                 Interlocked.Increment(ref _detached);
             }
         }
 
-        public void Dispose() {
+        public void DetachLeft() {
             lock (_sync) {
                 while (_avaliables.Count > 0) {
-                    var item = _avaliables.Pop();
-                    Interlocked.Decrement(ref _avaliable);
-                    _occupies.Add(item);
-                    Interlocked.Increment(ref _occupied);
+                    var item = AcquireItem();
                     DetachItem(item);
                 }
             }
+        }
+
+        protected abstract T Constructing();
+
+        protected virtual void OnItemConstructed(T item) {
+        }
+
+        protected virtual void OnItemPoped(T item) {
+        }
+
+        protected virtual void OnItemOccupied(T item) {
+        }
+
+        protected virtual void OnItemReturned(T item) {
+        }
+
+        protected virtual void OnItemDetached(T item) {
         }
     }
 }
