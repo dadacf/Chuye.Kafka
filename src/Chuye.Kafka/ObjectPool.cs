@@ -84,7 +84,7 @@ namespace Chuye.Kafka {
             }
         }
 
-        public void DetachLeft() {
+        public void DetachAvaliables() {
             lock (_sync) {
                 while (_avaliables.Count > 0) {
                     var item = AcquireItem();

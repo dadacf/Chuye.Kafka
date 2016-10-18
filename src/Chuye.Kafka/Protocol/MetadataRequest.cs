@@ -21,7 +21,7 @@ namespace Chuye.Kafka.Protocol {
 
         public MetadataRequest(params String[] topics)
             : this() {
-            TopicNames = topics;
+            TopicNames = topics ?? new String[0];
         }
 
         protected override void SerializeContent(KafkaStreamWriter writer) {
