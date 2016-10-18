@@ -4,9 +4,11 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.IO;
+using Chuye.Kafka.Protocol;
 
 namespace Chuye.Kafka {
     public class Connection : IDisposable {
+        private const Int32 ResponseLengthSize = 4;
         private readonly Socket _socket;
 
         public Socket Socket {
@@ -30,23 +32,33 @@ namespace Chuye.Kafka {
         }
 
         public Response Submit(Request request) {
-            using (var reqStream = new MemoryStream()) {
-                request.WriteTo(reqStream);
-                using (var networkStream = new NetworkStream(_socket)) {
-                    reqStream.CopyTo(networkStream);
-                    reqStream.Flush();
+            using (var stream = new MemoryStream(4096)) {
+                request.Serialize(stream);
+                stream.Seek(0L, SeekOrigin.Begin);
 
-                    var buffer = new Byte[4];
+                using (var networkStream = new NetworkStream(_socket)) {
+                    stream.CopyTo(networkStream);
+                    stream.Flush();
+
+                    //var buffer = new Byte[4];
                     //get resp type
-                    networkStream.Read(buffer, 0, buffer.Length);
+                    //networkStream.Read(buffer, 0, buffer.Length);
                     //read the left
 
-                    Response response = null;
-                    throw new NotImplementedException();
-                    response.ReadFrom(networkStream);
+                    var response = GenerateResponse(request.ApiKey);
+                    response.Deserialize(networkStream);
                     return response;
                 }
             }
+        }
+
+        private Response GenerateResponse(ApiKey apiKey) {
+            var requestTypeName = apiKey.ToString();
+            var responseTypeName = requestTypeName.Substring(0, requestTypeName.Length - "Request".Length) + "Response";
+            var responseTypeFullName = (Int32)apiKey < 10 ? "Chuye.Kafka.Protocol." + responseTypeName
+                : "Chuye.Kafka.Protocol.Management." + responseTypeName;
+            var responseType = Type.GetType(responseTypeFullName);
+            return (Response)Activator.CreateInstance(responseType);
         }
 
         public void Dispose() {
@@ -55,4 +67,4 @@ namespace Chuye.Kafka {
             }
         }
     }
-}   
+}
