@@ -39,12 +39,6 @@ namespace Chuye.Kafka {
                 using (var networkStream = new NetworkStream(_socket)) {
                     stream.CopyTo(networkStream);
                     stream.Flush();
-
-                    //var buffer = new Byte[4];
-                    //get resp type
-                    //networkStream.Read(buffer, 0, buffer.Length);
-                    //read the left
-
                     var response = GenerateResponse(request.ApiKey);
                     response.Deserialize(networkStream);
                     return response;

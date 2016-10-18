@@ -67,7 +67,7 @@ namespace Chuye.Kafka.Protocol {
             ErrorCode           = (ErrorCode)reader.ReadInt16();
             HighwaterMarkOffset = reader.ReadInt64();
             MessageSetSize      = reader.ReadInt32();
-            MessageSet          = new MessageSet(MessageSetSize);
+            MessageSet          = new MessageSet(this);
             MessageSet.FetchFrom(reader);
         }
 

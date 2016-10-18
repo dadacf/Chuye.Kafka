@@ -12,6 +12,10 @@ namespace Chuye.Kafka.Protocol {
     //  Partition => int32
     //  MessageSetSize => int32
     public class ProduceRequest : Request {
+        public AcknowlegeStrategy RequiredAcks { get; set; }
+        public Int32 Timeout { get; set; }
+        public ProduceRequestTopicPartition[] TopicPartitions { get; set; }
+
         public ProduceRequest()
             : base(ApiKey.ProduceRequest) {
         }
@@ -124,10 +128,6 @@ namespace Chuye.Kafka.Protocol {
             }
         }
 
-        public AcknowlegeStrategy RequiredAcks { get; set; }
-        public Int32 Timeout { get; set; }
-        public ProduceRequestTopicPartition[] TopicPartitions { get; set; }
-
         protected override void SerializeContent(KafkaStreamWriter writer) {
             writer.Write((Int16)RequiredAcks);
             writer.Write(Timeout);
@@ -172,7 +172,8 @@ namespace Chuye.Kafka.Protocol {
         public void FetchFrom(KafkaStreamReader reader) {
             Partition      = reader.ReadInt32();
             MessageSetSize = reader.ReadInt32();
-            MessageSet     = new MessageSet(MessageSetSize);
+            throw new NotImplementedException();
+            //MessageSet     = new MessageSet(this);
             MessageSet.FetchFrom(reader);
         }
     }

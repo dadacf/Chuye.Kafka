@@ -11,20 +11,26 @@ namespace Chuye.Kafka.Protocol {
     //  Offset => int64
     //  MessageSize => int32    
     public class MessageSet : IKafkaReadable, IKafkaWriteable {
-        private readonly Int32 _messageSetSize;
+        private readonly MessageBody _messageBody;
 
         public MessageSetDetail[] Items { get; set; }
 
         public MessageSet() {
         }
 
-        public MessageSet(Int32 messageSetSize) {
-            _messageSetSize = messageSetSize;
+        public MessageSet(MessageBody messageBody) {
+            _messageBody = messageBody;
         }
 
         public void FetchFrom(KafkaStreamReader reader) {
-            var previousPosition = reader.BaseStream.Position;
-            var sets = new List<MessageSetDetail>();
+            //var previousPosition = reader.BaseStream.Position;
+            Items = new MessageSetDetail[_messageBody.HighwaterMarkOffset];
+            for (int i = 0; i < _messageBody.HighwaterMarkOffset; i++) {
+                Items[i] = new MessageSetDetail();
+                Items[i].FetchFrom(reader);
+            }
+
+            /*var sets = new List<MessageSetDetail>();
             while (reader.BaseStream.Position - previousPosition < _messageSetSize) {
                 //var expect = 14;
                 var set = new MessageSetDetail();
@@ -53,7 +59,7 @@ namespace Chuye.Kafka.Protocol {
                     break;
                 }
             }
-            Items = Decompress(sets).ToArray();
+            Items = Decompress(sets).ToArray();*/
         }
 
         private IEnumerable<MessageSetDetail> Decompress(IEnumerable<MessageSetDetail> sets) {
@@ -68,7 +74,8 @@ namespace Chuye.Kafka.Protocol {
                     var buffer = GZip.Decompress(item.Message.Value);
                     using (var stream = new MemoryStream(buffer))
                     using (var reader = new KafkaStreamReader(stream)) {
-                        var set = new MessageSet((Int32)stream.Length);
+                        throw new NotImplementedException();
+                        var set = new MessageSet();
                         set.FetchFrom(reader);
                         foreach (var item2 in set.Items) {
                             yield return item2;
