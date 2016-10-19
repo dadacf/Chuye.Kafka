@@ -42,9 +42,11 @@
   <ItemGroup>
     <Compile Include="Internal\Client.cs" />
     <Compile Include="Internal\ExistingBrokerDispatcher.cs" />
+    <Compile Include="Internal\PartitionedMessageQueue.cs" />
     <Compile Include="Internal\RequestSubmittingEventArgs.cs" />
     <Compile Include="Internal\SocketPool.cs" />
     <Compile Include="Internal\TopicBrokerDispatcher.cs" />
+    <Compile Include="Internal\TopicPartitionDispatcher.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="Connection.cs" />
     <Compile Include="ConnectionFactory.cs" />

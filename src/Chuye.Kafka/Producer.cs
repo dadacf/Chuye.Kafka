@@ -1,103 +1,97 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Threading.Tasks;
-//using Chuye.Kafka.Internal;
-//using Chuye.Kafka.Protocol;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Chuye.Kafka.Internal;
 
-//namespace Chuye.Kafka {
-//    public interface IProducer {
-//        void Send(String topic, IList<Message> messages);
-//    }
+namespace Chuye.Kafka {
+    public interface IProducer {
+        Int64 Send(String topic, params String[] messages);
+        Int64 Send(String topic, IList<Message> messages);
+    }
 
-//    public interface IQueuedProducer {
-//        IProducerQueue Queuing();
-//    }
+    public class Producer : IProducer {
+        private readonly Client _client;
+        private readonly TopicPartitionDispatcher _partitionDispatcher;
 
-//    public interface IProducerQueue {
-//        void Dispose();
-//        void Enqueue(String topic, Message message);
-//        void Flush();
-//    }
+        public Client Client {
+            get { return _client; }
+        }
 
-//    class Producer : IQueuedProducer, IProducer {
-//        private readonly ConnectionFactory _connectionFactory;
-//        private readonly IRouter _route;
+        public Producer(Option option) {
+            _client = new Client(option);
+            _partitionDispatcher = new TopicPartitionDispatcher(_client);
+            _client.ReplaceDispatcher(_partitionDispatcher);
+        }
 
-//        public Producer(ConnectionFactory connectionFactory, IRouter route) {
-//            _connectionFactory = connectionFactory;
-//            _route = route;
-//        }
+        public virtual Int64 Send(String topic, params String[] messages) {
+            return Send(topic, messages.Select(x => (Message)x).ToArray());
+        }
 
-//        public void Send(String topic, IList<Message> messages) {
-//            var req = new ProduceRequest(topic, 0, messages);
-//            var broker = _route.Dispatch(topic);
-//            var con = _connectionFactory.Connect(broker.ToAddress());
-//            var resp = (ProduceResponse)con.Submit(req);
-//            resp.ThrowIfFail();
-//        }
+        public virtual Int64 Send(String topic, IList<Message> messages) {
+            var topicPartition = SelectTopicPartition(topic);
+            return _client.Produce(topic, topicPartition.Partition, messages);
+        }
 
-//        public IProducerQueue Queuing() {
-//            return new ProducerQueue(this);
-//        }
-//    }
+        protected TopicPartition SelectTopicPartition(String topic) {
+            return _partitionDispatcher.SequentialSelect(topic);
+        }
+    }
 
-//    public class ProducerQueue : IProducerQueue {
-//        private const Int32 Limit = 20;
-//        private const Int32 MaxIntervalMilliseconds = 1000;
+    public class ThrottledProducer : Producer, IDisposable {
+        private readonly Dictionary<TopicPartition, PartitionedMessageQueue> _queues;
+        private readonly ReaderWriterLockSlim _sync;
 
-//        private readonly IProducer _producer;
-//        private readonly Dictionary<String, Queue<Message>> _queues;
-//        private readonly Object _sync;
-//        private DateTime _createTime;
+        public ThrottledProducer(Option option)
+            : base(option) {
+            _queues = new Dictionary<TopicPartition, PartitionedMessageQueue>();
+            _sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        }
 
-//        internal ProducerQueue(IProducer producer) {
-//            _producer = producer;
-//            _queues = new Dictionary<String, Queue<Message>>();
-//            _sync = new Object();
-//            _createTime = DateTime.UtcNow;
-//        }
+        public override Int64 Send(String topic, params String[] messages) {
+            return Send(topic, messages.Select(x => (Message)x).ToArray());
+        }
 
-//        public void Enqueue(String topic, Message message) {
-//            Queue<Message> queue;
-//            lock (_sync) {
-//                if (!_queues.TryGetValue(topic, out queue)) {
-//                    queue = new Queue<Message>();
-//                    _queues.Add(topic, queue);
-//                }
-//                queue.Enqueue(message);
-//            }
+        public override Int64 Send(String topic, IList<Message> messages) {
+            var topicPartition = base.SelectTopicPartition(topic);
+            PartitionedMessageQueue queue;
+            _sync.EnterUpgradeableReadLock();
+            try {
+                if (_queues.TryGetValue(topicPartition, out queue)) {
+                    queue.Enqueue(messages);
+                    return 0L;
+                }
 
-//            if (queue.Count > Limit || DateTime.UtcNow.Subtract(_createTime).TotalMilliseconds > MaxIntervalMilliseconds) {
-//                Flush();
-//            }
-//        }
+                _sync.EnterWriteLock();
+                try {
+                    queue = new PartitionedMessageQueue(topicPartition, Client);
+                    _queues.Add(topicPartition, queue);
+                    queue.Enqueue(messages);
+                    return 0L;
+                }
+                finally {
+                    _sync.ExitWriteLock();
+                }
+            }
+            finally {
+                _sync.ExitUpgradeableReadLock();
+            }
+        }
 
-//        public void Flush() {
-//            lock (_sync) {
-//                var list = new List<Message>(Limit);
-//                foreach (var item in _queues) {
-//                    while (item.Value.Count > 0) {
-//                        list.Add(item.Value.Dequeue());
-//                        if (list.Count > Limit) {
-//                            BatchSend(item.Key, list);
-//                        }
-//                    }
+        public void Dispose() {
+            _sync.EnterWriteLock();
+            try {
+                foreach (var queue in _queues) {
+                    queue.Value.Flush();
+                }
+                _queues.Clear();
+            }
+            finally {
+                _sync.ExitWriteLock();
 
-//                    if (list.Count > 0) {
-//                        BatchSend(item.Key, list);
-//                    }
-//                }
-//            }
-//        }
-
-//        private void BatchSend(String topic, List<Message> messages) {
-//            _producer.Send(topic, messages.ToArray());
-//        }
-
-//        public void Dispose() {
-//            Flush();
-//        }
-//    }
-//}
+            }
+        }
+    }
+}

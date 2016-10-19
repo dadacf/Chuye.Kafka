@@ -12,16 +12,27 @@ namespace Chuye.Kafka.Internal {
         private const String TermPattern = "[a-zA-Z][a-zA-Z0-9_-]*";
         private const String __consumer_offsets = "__consumer_offsets";
         private readonly ExistingBrokerDispatcher _existingBrokerDispatcher;
-        private readonly TopicBrokerDispatcher _topicBrokerDispatcher;
+        //todo: chicken-and-egg problem
+        private /*readonly*/ TopicBrokerDispatcher _topicBrokerDispatcher;
         private readonly Option _option;
 
         public event EventHandler<RequestSubmittingEventArgs> RequestSubmitting;
 
-        public Client(Option option) {
+        public Client(Option option)
+            : this(option, new ExistingBrokerDispatcher(option.BrokerUris)) {
+        }
+
+        internal Client(Option option, ExistingBrokerDispatcher existingBrokerDispatcher) {
             _option = option;
-            _existingBrokerDispatcher = new ExistingBrokerDispatcher(option.BrokerUris);
+            _existingBrokerDispatcher = existingBrokerDispatcher;
             _topicBrokerDispatcher = new TopicBrokerDispatcher(this);
         }
+
+        //todo: chicken-and-egg problem
+        internal void ReplaceDispatcher(TopicBrokerDispatcher topicBrokerDispatcher) {
+            _topicBrokerDispatcher = topicBrokerDispatcher;
+        }
+
 
         private void EnsureLegalTopicSpelling(String topic) {
             if (topic == null) {
@@ -168,5 +179,5 @@ namespace Chuye.Kafka.Internal {
                 OffsetCommit(topic, partitions[i], groupId, offsets[i]);
             }
         }
-    }    
+    }
 }
