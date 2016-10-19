@@ -1,29 +1,47 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Threading.Tasks;
-//using Chuye.Kafka.Protocol;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Chuye.Kafka.Internal;
+using Chuye.Kafka.Protocol;
 
-//namespace Chuye.Kafka {
-//    public interface IConsumer {
-//        String GroupId { get; }
-//        IEnumerable<Message> Fetch(String topic);
-//    }
+namespace Chuye.Kafka {
+    public interface IConsumer {
+        String GroupId { get; }
+        IEnumerable<Message> Fetch(String topic);
+    }
 
-//    public class Consumer : IConsumer {
-//        private readonly String _groupId;
-//        public String GroupId {
-//            get { return _groupId; }
-//        }
+    public class Consumer : IConsumer {
+        private readonly String _groupId;
+        private readonly Client _client;
+        private readonly TopicPartitionDispatcher _partitionDispatcher;
 
-//        public Consumer(String groupId) {
-//            _groupId = groupId;
-//        }
+        public String GroupId {
+            get { return _groupId; }
+        }
 
-//        public IEnumerable<Message> Fetch(String topic) {
-//            var fetchReq = new FetchRequest();
-//            throw new NotImplementedException();
-//        }
-//    }
-//}
+        public Client Client {
+            get { return _client; }
+        }
+
+        public Consumer(Option option, String groupId) {
+            _client = new Client(option);
+            _groupId = groupId;
+            _partitionDispatcher = new TopicPartitionDispatcher(_client);
+            _client.ReplaceDispatcher(_partitionDispatcher);
+        }
+
+        public IEnumerable<Message> Fetch(String topic) {
+            var topicPartition = SelectTopicPartition(topic);
+            var earliestOffset = _client.Offset(topicPartition.Name, topicPartition.Partition, OffsetOption.Earliest);
+            //todo: Offset saving
+            //todo: Rebalance
+            return _client.Fetch(topic, topicPartition.Partition, earliestOffset);
+        }
+
+        protected TopicPartition SelectTopicPartition(String topic) {
+            return _partitionDispatcher.SequentialSelect(topic);
+        }
+    }
+}

@@ -18,6 +18,10 @@ namespace Chuye.Kafka.Internal {
 
         public event EventHandler<RequestSubmittingEventArgs> RequestSubmitting;
 
+        internal Option Option {
+            get { return _option; }
+        }
+
         public Client(Option option)
             : this(option, new ExistingBrokerDispatcher(option.BrokerUris)) {
         }
