@@ -12,7 +12,7 @@ namespace Chuye.Kafka.Internal {
     public class Client {
         private const String TermPattern = "[a-zA-Z][a-zA-Z0-9_-]*";
         private const String __consumer_offsets = "__consumer_offsets";
-        private readonly KnownBrokerDispatcher _existingBrokerDispatcher;
+        private readonly KnownBrokerDispatcher _knownBrokerDispatcher;
         private readonly TopicBrokerDispatcher _topicBrokerDispatcher;
         private readonly ConnectionFactory _connectionFactory;
 
@@ -20,24 +20,16 @@ namespace Chuye.Kafka.Internal {
         public event EventHandler<ResponseReceivedEventArg> ResponseReceived;
         
         internal KnownBrokerDispatcher ExistingBrokerDispatcher {
-            get { return _existingBrokerDispatcher; }
+            get { return _knownBrokerDispatcher; }
         }
 
         internal TopicBrokerDispatcher TopicBrokerDispatcher {
             get { return _topicBrokerDispatcher; }
         }
 
-        public Client(Option option)
-            : this(option.GetSharedConnections(), option.BrokerUris.ToArray()) {
-        }
-
-        internal Client(ConnectionFactory connectionFactory, IList<Uri> exitingBroker)
-            : this(connectionFactory, new KnownBrokerDispatcher(exitingBroker)) {
-        }
-
-        internal Client(ConnectionFactory connectionFactory, KnownBrokerDispatcher existingBrokerDispatcher) {
-            _connectionFactory = connectionFactory;
-            _existingBrokerDispatcher = existingBrokerDispatcher;
+        public Client(Option option) { 
+            _connectionFactory = option.GetSharedConnections();
+            _knownBrokerDispatcher = new KnownBrokerDispatcher(option.BrokerUris.ToArray());
             _topicBrokerDispatcher = new TopicBrokerDispatcher(this);
         }
 
@@ -70,6 +62,26 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
+        internal Task<Response> SubmitRequestAsync(Broker broker, Request req) {
+            return SubmitRequestAsync(broker, req);
+        }
+
+
+        internal async Task<Response> SubmitRequestAsync(Uri uri, Request req) {
+            var reqEvent = new RequestSendingEventArgs(uri, req);
+            OnRequestSending(reqEvent);
+            //Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Sending {2} to {3}",
+            //    DateTime.Now, Thread.CurrentThread.ManagedThreadId, reqEvent.Request.ApiKey, reqEvent.Uri.AbsoluteUri);
+            using (var connection = _connectionFactory.Connect(reqEvent.Uri)) {
+                var resp = await connection.SubmitAsync(reqEvent.Request);
+                //Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Received {2} from {3}",
+                //    DateTime.Now, Thread.CurrentThread.ManagedThreadId, resp.GetType().Name, reqEvent.Uri.AbsoluteUri);
+                var respEvent = new ResponseReceivedEventArg(resp);
+                OnResponseReceived(respEvent);
+                return respEvent.Response;
+            }
+        }
+
         protected virtual void OnRequestSending(RequestSendingEventArgs @event) {
             RequestSending?.Invoke(this, @event);
         }
@@ -86,7 +98,7 @@ namespace Chuye.Kafka.Internal {
                 EnsureLegalTopicSpelling(topic);
             }
 
-            var brokerUri = _existingBrokerDispatcher.FreeSelect();
+            var brokerUri = _knownBrokerDispatcher.FreeSelect();
             var request = new MetadataRequest(topics);
             var response = (MetadataResponse)SubmitRequest(brokerUri, request);
             response.TopicMetadatas = response.TopicMetadatas
@@ -99,6 +111,15 @@ namespace Chuye.Kafka.Internal {
             var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new ProduceRequest(topic, partition, messages);
             var response = (ProduceResponse)SubmitRequest(broker, request);
+            response.TryThrowFirstErrorOccured();
+            return response.TopicPartitions[0].Details[0].Offset;
+        }
+
+        public async Task<Int64> ProduceAsync(String topic, Int32 partition, IList<Message> messages) {
+            EnsureLegalTopicSpelling(topic);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
+            var request = new ProduceRequest(topic, partition, messages);
+            var response = (ProduceResponse)(await SubmitRequestAsync(broker.ToUri(), request));
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions[0].Details[0].Offset;
         }

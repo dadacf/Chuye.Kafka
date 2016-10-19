@@ -21,12 +21,45 @@ namespace Chuye.Kafka {
         }
 
         public virtual Int64 Send(String topic, params String[] messages) {
+            if (String.IsNullOrWhiteSpace(topic)) {
+                throw new ArgumentNullException("topic");
+            }
+            if (messages == null || messages.Length == 0) {
+                throw new ArgumentOutOfRangeException("messages");
+            }
             return Send(topic, messages.Select(x => (Message)x).ToArray());
         }
 
         public virtual Int64 Send(String topic, IList<Message> messages) {
+            if (String.IsNullOrWhiteSpace(topic)) {
+                throw new ArgumentNullException("topic");
+            }
+            if (messages == null || messages.Count == 0) {
+                throw new ArgumentOutOfRangeException("messages");
+            }
             var topicPartition = SelectNextTopicPartition(topic);
             return _client.Produce(topic, topicPartition.Partition, messages);
+        }
+
+        public virtual Task<Int64> SendAsync(String topic, params String[] messages) {
+            if (String.IsNullOrWhiteSpace(topic)) {
+                throw new ArgumentNullException("topic");
+            }
+            if (messages == null || messages.Length == 0) {
+                throw new ArgumentOutOfRangeException("messages");
+            }
+            return SendAsync(topic, messages.Select(x => (Message)x).ToArray());
+        }
+
+        public virtual Task<Int64> SendAsync(String topic, IList<Message> messages) {
+            if (String.IsNullOrWhiteSpace(topic)) {
+                throw new ArgumentNullException("topic");
+            }
+            if (messages == null || messages.Count == 0) {
+                throw new ArgumentOutOfRangeException("messages");
+            }
+            var topicPartition = SelectNextTopicPartition(topic);
+            return _client.ProduceAsync(topic, topicPartition.Partition, messages);
         }
 
         protected virtual TopicPartition SelectNextTopicPartition(String topic) {
@@ -45,6 +78,12 @@ namespace Chuye.Kafka {
         }
 
         public override Int64 Send(String topic, params String[] messages) {
+            if (String.IsNullOrWhiteSpace(topic)) {
+                throw new ArgumentNullException("topic");
+            }
+            if (messages == null || messages.Length == 0) {
+                throw new ArgumentOutOfRangeException("messages");
+            }
             return Send(topic, messages.Select(x => (Message)x).ToArray());
         }
 
@@ -72,6 +111,14 @@ namespace Chuye.Kafka {
             finally {
                 _sync.ExitUpgradeableReadLock();
             }
+        }
+
+        public override Task<Int64> SendAsync(string topic, params string[] messages) {
+            return Task.FromResult(Send(topic, messages));
+        }
+
+        public override Task<long> SendAsync(string topic, IList<Message> messages) {
+            return Task.FromResult(Send(topic, messages));
         }
 
         public void Dispose() {

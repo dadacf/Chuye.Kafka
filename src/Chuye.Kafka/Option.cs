@@ -24,6 +24,9 @@ namespace Chuye.Kafka {
         }
 
         public Option(params Uri[] brokerUris) {
+            if (brokerUris == null || brokerUris.Length == 0) {
+                throw new ArgumentOutOfRangeException("brokerUris");
+            }
             _brokerUris = brokerUris;
             _property = new NameValueCollection();
         }

@@ -18,13 +18,16 @@ namespace Chuye.Kafka {
         public ConnectionState GetState() {
             return new ConnectionState {
                 Constructed = _sockets.Sum(x => x.Value.Constructed),
-                Avaliable = _sockets.Sum(x => x.Value.Avaliable),
-                Detached = _sockets.Sum(x => x.Value.Detached),
-                Occupied = _sockets.Sum(x => x.Value.Occupied)
+                Avaliable   = _sockets.Sum(x => x.Value.Avaliable),
+                Detached    = _sockets.Sum(x => x.Value.Detached),
+                Occupied    = _sockets.Sum(x => x.Value.Occupied)
             };
         }
 
         public Connection Connect(Uri uri) {
+            if (uri == null) {
+                throw new ArgumentNullException("uri");
+            }
             lock (_sync) {
                 SocketPool pool;
                 if (!_sockets.TryGetValue(uri.AbsoluteUri, out pool)) {
@@ -38,7 +41,7 @@ namespace Chuye.Kafka {
 
         public void Dispose() {
             foreach (var sockets in _sockets.Values) {
-                sockets.ReleaseAvaliables();
+                sockets.ReleaseAll();
             }
         }
 

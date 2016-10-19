@@ -59,7 +59,7 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        public void ReturnItem(T item) {
+        public virtual void ReturnItem(T item) {
             lock (_sync) {
                 var existed = _occupies.Remove(item);
                 if (!existed) {
@@ -72,7 +72,7 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        public void DetachItem(T item) {
+        public virtual void DetachItem(T item) {
             lock (_sync) {
                 var existed = _occupies.Remove(item);
                 if (!existed) {
@@ -84,7 +84,7 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        public void ReleaseAvaliables() {
+        public virtual void ReleaseAll() {
             lock (_sync) {
                 while (_avaliables.Count > 0) {
                     var item = AcquireItem();
