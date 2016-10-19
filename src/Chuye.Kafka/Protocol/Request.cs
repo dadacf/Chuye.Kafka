@@ -43,35 +43,36 @@ namespace Chuye.Kafka.Protocol {
         }
 
         public void Serialize(Stream stream) {
-            var writer = new KafkaStreamWriter(stream);
-            var lengthWriter = new KafkaLengthWriter(writer);
-            lengthWriter.BeginWrite();
+            using (var writer = new KafkaWriter(stream)) {
+                var lengthWriter = new KafkaLengthWriter(writer);
+                lengthWriter.MarkAsStart();
 
-            writer.Write((Int16)ApiKey);
-            writer.Write(ApiVersion);
-            writer.Write(CorrelationId);
-            writer.Write(ClientId);
-            SerializeContent(writer);
-
-            Size = lengthWriter.EndWrite();
+                writer.Write((Int16)ApiKey);
+                writer.Write(ApiVersion);
+                writer.Write(CorrelationId);
+                writer.Write(ClientId);
+                SerializeContent(writer);
+                Size = lengthWriter.Caculate();
+            }
         }
 
         public void Deserialize(Stream stream) {
-            var reader = new KafkaStreamReader(stream);
-            Size = reader.ReadInt32();
-            var apiKey = (ApiKey)reader.ReadInt16();
-            if (ApiKey != apiKey) {
-                throw new InvalidOperationException("Request type definition error");
+            using (var reader = new KafkaReader(stream)) {
+                Size = reader.ReadInt32();
+                var apiKey = (ApiKey)reader.ReadInt16();
+                if (ApiKey != apiKey) {
+                    throw new InvalidOperationException("Request type definition error");
+                }
+                ApiVersion    = reader.ReadInt16();
+                CorrelationId = reader.ReadInt32();
+                ClientId      = reader.ReadString();
+                DeserializeContent(reader);
             }
-            ApiVersion    = reader.ReadInt16();
-            CorrelationId = reader.ReadInt32();
-            ClientId      = reader.ReadString();
-            DeserializeContent(reader);
         }
 
-        protected abstract void SerializeContent(KafkaStreamWriter writer);
+        protected abstract void SerializeContent(KafkaWriter writer);
 
-        protected abstract void DeserializeContent(KafkaStreamReader reader);
+        protected abstract void DeserializeContent(KafkaReader reader);
     }
 }
 

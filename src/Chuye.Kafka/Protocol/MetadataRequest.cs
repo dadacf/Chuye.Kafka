@@ -17,6 +17,7 @@ namespace Chuye.Kafka.Protocol {
 
         public MetadataRequest()
             : base(ApiKey.MetadataRequest) {
+            TopicNames = new String[0];
         }
 
         public MetadataRequest(params String[] topics)
@@ -24,11 +25,11 @@ namespace Chuye.Kafka.Protocol {
             TopicNames = topics ?? new String[0];
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(TopicNames);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             TopicNames = reader.ReadStrings();
         }
     }

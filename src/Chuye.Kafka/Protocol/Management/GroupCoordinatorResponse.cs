@@ -21,21 +21,21 @@ namespace Chuye.Kafka.Protocol.Management {
         public String CoordinatorHost { get; set; }
         public Int32 CoordinatorPort { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ErrorCode       = (ErrorCode)reader.ReadInt16();
             CoordinatorId   = reader.ReadInt32();
             CoordinatorHost = reader.ReadString();
             CoordinatorPort = reader.ReadInt32();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write((Int16)ErrorCode);
             writer.Write(CoordinatorId);
             writer.Write(CoordinatorHost);
             writer.Write(CoordinatorPort);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             if (ErrorCode != ErrorCode.NoError) {
                 throw new ProtocolException(ErrorCode);
             }

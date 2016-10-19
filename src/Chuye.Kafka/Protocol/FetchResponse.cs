@@ -16,15 +16,15 @@ namespace Chuye.Kafka.Protocol {
     public class FetchResponse : Response {
         public FetchResponseTopicPartition[] TopicPartitions { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             TopicPartitions = reader.ReadArray<FetchResponseTopicPartition>();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(TopicPartitions);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             var errors = TopicPartitions.SelectMany(x => x.MessageBodys)
                 .Select(x => x.ErrorCode)
                 .Where(x => x != ErrorCode.NoError);
@@ -38,12 +38,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public MessageBody[] MessageBodys { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName    = reader.ReadString();
             MessageBodys = reader.ReadArray<MessageBody>();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(MessageBodys);
         }
@@ -62,21 +62,23 @@ namespace Chuye.Kafka.Protocol {
         public Int32 MessageSetSize { get; set; }
         public MessageSet MessageSet { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Partition           = reader.ReadInt32();
             ErrorCode           = (ErrorCode)reader.ReadInt16();
             HighwaterMarkOffset = reader.ReadInt64();
-            MessageSetSize      = reader.ReadInt32();
-            MessageSet          = new MessageSet(this);
-            MessageSet.FetchFrom(reader);
+            MessageSetSize      = reader.ReadInt32();            
+            MessageSet      = new MessageSet(this);
+            // Min length per MessageSet: 8 + 4 + ( 4 + 1 + 1 + 4 + key.length + 4 + value.length) is 26
+            // It means 2 msg has minimal MessageBody = 26*2 = 52
+            MessageSet.FetchFrom(reader);            
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Partition);
             writer.Write((Int16)ErrorCode);
             writer.Write(HighwaterMarkOffset);
             writer.Write(MessageSetSize);
-            MessageSet.WriteTo(writer);
+            MessageSet.SaveTo(writer);
         }
     }
 }

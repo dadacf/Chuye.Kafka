@@ -19,26 +19,28 @@ namespace Chuye.Kafka.Protocol {
         public Int32 CorrelationId { get; private set; }
 
         public void Serialize(Stream stream) {
-            var writer = new KafkaStreamWriter(stream);
-            var lengthWriter = new KafkaLengthWriter(writer);
-            lengthWriter.BeginWrite();
-            writer.Write(CorrelationId);
-            SerializeContent(writer);
-            Size = lengthWriter.EndWrite();
+            using (var writer = new KafkaWriter(stream)) {
+                var lengthWriter = new KafkaLengthWriter(writer);
+                lengthWriter.MarkAsStart();
+                writer.Write(CorrelationId);
+                SerializeContent(writer);
+                Size = lengthWriter.Caculate();
+            }
         }
 
         public void Deserialize(Stream stream) {
-            var reader    = new KafkaStreamReader(stream);
-            Size          = reader.ReadInt32();
-            CorrelationId = reader.ReadInt32();
-            DeserializeContent(reader);
+            using (var reader = new KafkaReader(stream)) {
+                Size = reader.ReadInt32();
+                CorrelationId = reader.ReadInt32();
+                DeserializeContent(reader);
+            }
         }
 
-        protected abstract void DeserializeContent(KafkaStreamReader reader);
+        protected abstract void DeserializeContent(KafkaReader reader);
 
-        protected abstract void SerializeContent(KafkaStreamWriter writer);
+        protected abstract void SerializeContent(KafkaWriter writer);
 
-        public virtual void ThrowIfFail() {
+        public virtual void TryThrowFirstErrorOccured() {
         }
     }
 }

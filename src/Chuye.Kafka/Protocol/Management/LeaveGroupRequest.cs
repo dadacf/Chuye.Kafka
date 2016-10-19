@@ -17,12 +17,12 @@ namespace Chuye.Kafka.Protocol.Management {
             : base(ApiKey.LeaveGroupRequest) {
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(GroupId);
             writer.Write(MemberId);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             GroupId  = reader.ReadString();
             MemberId = reader.ReadString();
         }

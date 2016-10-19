@@ -15,17 +15,16 @@ namespace Chuye.Kafka.Protocol {
             : base(ApiKey.OffsetCommitRequest) {
         }
 
-        public static OffsetCommitRequest Create(Int16 version) {
-            if (version == 0) {
-                return new OffsetCommitRequestV0();
-            }
-            else if (version == 1) {
-                return new OffsetCommitRequestV1();
-            }
-            else if (version == 2) {
-                return new OffsetCommitRequestV2();
-            }
-            throw new ArgumentOutOfRangeException("version");
+        public static OffsetCommitRequest CreateV0(String topic, Int32 partition, String groupId, Int64 offset) {
+            return new OffsetCommitRequestV0(topic, partition, groupId, offset);
+        }
+
+        public static OffsetCommitRequest CreateV1() {
+            return new OffsetCommitRequestV1();
+        }
+
+        public static OffsetCommitRequest CreateV2() {
+            return new OffsetCommitRequestV2();
         }
     }
 
@@ -43,7 +42,7 @@ namespace Chuye.Kafka.Protocol {
         public OffsetCommitRequestV0() {
         }
 
-        public OffsetCommitRequestV0(String topic, String groupId, Int32 partition, Int64 offset) {
+        public OffsetCommitRequestV0(String topic, Int32 partition, String groupId, Int64 offset) {
             ConsumerGroup   = groupId;
             TopicPartitions = new OffsetCommitRequestTopicPartitionV0[1];
             TopicPartitions = new[] {
@@ -89,12 +88,12 @@ namespace Chuye.Kafka.Protocol {
             };
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(ConsumerGroup);
             writer.Write(TopicPartitions);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ConsumerGroup = reader.ReadString();
             TopicPartitions = reader.ReadArray<OffsetCommitRequestTopicPartitionV0>();
         }
@@ -116,14 +115,14 @@ namespace Chuye.Kafka.Protocol {
         public String ConsumerId { get; set; }
         public OffsetCommitRequestTopicPartitionV1[] TopicPartitions { get; set; }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(ConsumerGroup);
             writer.Write(ConsumerGroupGenerationId);
             writer.Write(ConsumerId);
             writer.Write(TopicPartitions);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ConsumerGroup             = reader.ReadString();
             ConsumerGroupGenerationId = reader.ReadInt32();
             ConsumerId                = reader.ReadString();
@@ -148,7 +147,7 @@ namespace Chuye.Kafka.Protocol {
         public Int64 RetentionTime { get; set; }
         public OffsetCommitRequestTopicPartitionV0[] TopicPartitions { get; set; }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(ConsumerGroup);
             writer.Write(ConsumerGroupGenerationId);
             writer.Write(ConsumerId);
@@ -156,7 +155,7 @@ namespace Chuye.Kafka.Protocol {
             writer.Write(TopicPartitions);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ConsumerGroup             = reader.ReadString();
             ConsumerGroupGenerationId = reader.ReadInt32();
             ConsumerId                = reader.ReadString();
@@ -169,12 +168,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public IList<OffsetCommitRequestTopicPartitionDetailV0> Details { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(Details);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName = reader.ReadString();
             Details   = reader.ReadArray<OffsetCommitRequestTopicPartitionDetailV0>();
         }
@@ -184,12 +183,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public OffsetCommitRequestTopicPartitionDetailV1[] Details { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(Details);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName = reader.ReadString();
             Details   = reader.ReadArray<OffsetCommitRequestTopicPartitionDetailV1>();
         }
@@ -200,13 +199,13 @@ namespace Chuye.Kafka.Protocol {
         public Int64 Offset { get; set; }
         public String Metadata { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Partition);
             writer.Write(Offset);
             writer.Write(Metadata);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Partition = reader.ReadInt32();
             Offset    = reader.ReadInt64();
             Metadata  = reader.ReadString();
@@ -219,14 +218,14 @@ namespace Chuye.Kafka.Protocol {
         public Int64 TimeStamp { get; set; }
         public String Metadata { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Partition);
             writer.Write(Offset);
             writer.Write(TimeStamp);
             writer.Write(Metadata);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Partition = reader.ReadInt32();
             Offset    = reader.ReadInt64();
             TimeStamp = reader.ReadInt64();

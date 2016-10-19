@@ -22,44 +22,22 @@ namespace Chuye.Kafka.Protocol {
             _messageBody = messageBody;
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
-            //var previousPosition = reader.BaseStream.Position;
-            Items = new MessageSetDetail[_messageBody.HighwaterMarkOffset];
-            for (int i = 0; i < _messageBody.HighwaterMarkOffset; i++) {
-                Items[i] = new MessageSetDetail();
-                Items[i].FetchFrom(reader);
+        public void FetchFrom(KafkaReader reader) {
+            if (_messageBody.HighwaterMarkOffset <= 0) {
+                Items = new MessageSetDetail[0];
+                return;
             }
-
-            /*var sets = new List<MessageSetDetail>();
-            while (reader.BaseStream.Position - previousPosition < _messageSetSize) {
-                //var expect = 14;
-                var set = new MessageSetDetail();
-                var messageStartPosition = reader.BaseStream.Position + 16;
-                try {
-                    set.FetchFrom(reader);
-                    if (reader.BaseStream.Position - previousPosition > _messageSetSize) {
-                        continue;
-                    }
-                    if (reader.BaseStream.Position - previousPosition == _messageSetSize) {
-                        var messageLength = (Int32)(reader.BaseStream.Position - messageStartPosition);
-                        if (messageLength != set.MessageSize - 4) {
-                            continue;
-                        }
-                        var messageBuffer = new Byte[messageLength];
-                        reader.BaseStream.Seek(messageStartPosition, SeekOrigin.Begin);
-                        reader.BaseStream.Read(messageBuffer, 0, messageLength);
-                        var crc32 = CRC32.ComputeHash(messageBuffer);
-                        if (crc32 != set.Message.Crc) {
-                            continue;
-                        }
-                    }
-                    sets.Add(set);
-                }
-                catch (IndexOutOfRangeException) {
+            var previousPosition = reader.PositionProceeded;
+            var items = new List<MessageSetDetail>((Int32)_messageBody.HighwaterMarkOffset);
+            for (int i = 0; i < _messageBody.HighwaterMarkOffset; i++) {
+                var item = new MessageSetDetail();
+                item.FetchFrom(reader);
+                items.Add(item);
+                if (reader.PositionProceeded - previousPosition == _messageBody.MessageSetSize) {
                     break;
                 }
             }
-            Items = Decompress(sets).ToArray();*/
+            Items = items.ToArray();
         }
 
         private IEnumerable<MessageSetDetail> Decompress(IEnumerable<MessageSetDetail> sets) {
@@ -73,7 +51,7 @@ namespace Chuye.Kafka.Protocol {
                 else if (item.Message.Attributes == MessageCodec.Gzip) {
                     var buffer = GZip.Decompress(item.Message.Value);
                     using (var stream = new MemoryStream(buffer))
-                    using (var reader = new KafkaStreamReader(stream)) {
+                    using (var reader = new KafkaReader(stream)) {
                         throw new NotImplementedException();
                         var set = new MessageSet();
                         set.FetchFrom(reader);
@@ -88,23 +66,23 @@ namespace Chuye.Kafka.Protocol {
             }
         }
 
-        public virtual void WriteTo(KafkaStreamWriter writer) {
+        public virtual void SaveTo(KafkaWriter writer) {
             //N.B., MessageSets are not preceded by an int32 like other array elements in the protocol.
             //writer.Write(Items.Length); //Error
             //writer.Write(Items); //Error
             foreach (var item in Items) {
-                item.WriteTo(writer);
+                item.SaveTo(writer);
             }
         }
 
     }
 
     public class GZipMessageSet : MessageSet {
-        public override void WriteTo(KafkaStreamWriter writer) {
+        public override void SaveTo(KafkaWriter writer) {
             using (var stream = new MemoryStream(4096)) {
-                var writer2 = new KafkaStreamWriter(stream);
+                var writer2 = new KafkaWriter(stream);
                 foreach (var item in Items) {
-                    item.WriteTo(writer2);
+                    item.SaveTo(writer2);
                 }
                 var messageBuffer = stream.ToArray();
                 var compressedMessageBuffer = GZip.Compress(messageBuffer, 0, messageBuffer.Length);
@@ -118,7 +96,7 @@ namespace Chuye.Kafka.Protocol {
                     }
                 };
                 writer2.Dispose();
-                base.WriteTo(writer);
+                base.SaveTo(writer);
             }
         }
     }
@@ -128,20 +106,20 @@ namespace Chuye.Kafka.Protocol {
         public Int32 MessageSize { get; private set; }
         public MessageSetItem Message { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
-            Offset = reader.ReadInt64();
-            MessageSize = reader.ReadInt32();
+        public void FetchFrom(KafkaReader reader) {
+            Offset = reader.ReadInt64();        //move 8
+            MessageSize = reader.ReadInt32();   //move 4
             Message = new MessageSetItem();
             Message.FetchFrom(reader);
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Offset);
             //writer.Write(MessageSize);
             var lengthWriter = new KafkaLengthWriter(writer);
-            lengthWriter.BeginWrite();
-            Message.WriteTo(writer);
-            MessageSize = lengthWriter.EndWrite();
+            lengthWriter.MarkAsStart();
+            Message.SaveTo(writer);
+            MessageSize = lengthWriter.Caculate();
         }
     }
 
@@ -158,24 +136,24 @@ namespace Chuye.Kafka.Protocol {
         public Byte[] Key { get; set; }
         public Byte[] Value { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
-            Crc = reader.ReadInt32();
-            MagicByte = reader.ReadByte();
-            Attributes = (MessageCodec)reader.ReadByte();
-            Key = reader.ReadBytes();
-            Value = reader.ReadBytes();
+        public void FetchFrom(KafkaReader reader) {
+            Crc = reader.ReadInt32();                       //move 4
+            MagicByte = reader.ReadByte();                  //move 1
+            Attributes = (MessageCodec)reader.ReadByte();   //move 1
+            Key = reader.ReadBytes();                       //move 4 + len(bytes) if not null
+            Value = reader.ReadBytes();                     //move 4 + len(bytes) if not null
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
-            var crcWriter = new KafkaBinaryCRCWriter(writer);
-            crcWriter.BeginWrite();
+        public void SaveTo(KafkaWriter writer) {
+            var crcWriter = new KafkaCrc32Writer(writer);
+            crcWriter.MarkAsStart();
 
             writer.Write(MagicByte);
             writer.Write((Byte)Attributes);
             writer.Write(Key);
             writer.Write(Value);
 
-            Crc = crcWriter.EndWrite();
+            Crc = crcWriter.Caculate();
         }
     }
 }

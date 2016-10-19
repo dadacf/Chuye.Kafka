@@ -20,11 +20,11 @@ namespace Chuye.Kafka.Protocol.Management {
             Groups = groups;
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(Groups.ToArray());
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             Groups = reader.ReadStrings();
         }
     }

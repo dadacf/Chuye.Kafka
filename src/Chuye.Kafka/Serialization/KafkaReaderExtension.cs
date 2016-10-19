@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Serialization {
     internal static class KafkaReaderExtension {
-        public static Int32[] ReadInt32Array(this KafkaStreamReader reader) {
+        public static Int32[] ReadInt32Array(this KafkaReader reader) {
             var size = reader.ReadInt32();
             if (size == -1) {
                 return null;
@@ -18,7 +18,7 @@ namespace Chuye.Kafka.Serialization {
             return array;
         }
 
-        public static Int64[] ReadInt64Array(this KafkaStreamReader reader) {
+        public static Int64[] ReadInt64Array(this KafkaReader reader) {
             var size = reader.ReadInt32();
             if (size == -1) {
                 return null;
@@ -30,7 +30,7 @@ namespace Chuye.Kafka.Serialization {
             return array;
         }
 
-        public static String[] ReadStrings(this KafkaStreamReader reader) {
+        public static String[] ReadStrings(this KafkaReader reader) {
             var size = reader.ReadInt32();
             if (size == -1) {
                 return null;
@@ -42,7 +42,7 @@ namespace Chuye.Kafka.Serialization {
             return array;
         }
 
-        public static T[] ReadArray<T>(this KafkaStreamReader reader) where T : IKafkaReadable, new() {
+        public static T[] ReadArray<T>(this KafkaReader reader) where T : IKafkaReadable, new() {
             var size = reader.ReadInt32();
             if (size == -1) {
                 return null;
@@ -56,7 +56,7 @@ namespace Chuye.Kafka.Serialization {
             return array;
         }
 
-        public static T[] ReadArray<T>(this KafkaStreamReader reader, Func<T> func) where T : IKafkaReadable {
+        public static T[] ReadArray<T>(this KafkaReader reader, Func<T> func) where T : IKafkaReadable {
             var size = reader.ReadInt32();
             if (size == -1) {
                 return null;

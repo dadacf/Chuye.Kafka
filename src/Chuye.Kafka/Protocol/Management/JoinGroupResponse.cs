@@ -31,7 +31,7 @@ namespace Chuye.Kafka.Protocol.Management {
         public String MemberId { get; set; }
         public JoinGroupResponseMember[] Members { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ErrorCode     = (ErrorCode)reader.ReadInt16();
             GenerationId  = reader.ReadInt32();
             GroupProtocol = reader.ReadString();
@@ -40,7 +40,7 @@ namespace Chuye.Kafka.Protocol.Management {
             Members       = reader.ReadArray<JoinGroupResponseMember>();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write((Int16)ErrorCode);
             writer.Write(GenerationId);
             writer.Write(GroupProtocol);
@@ -49,7 +49,7 @@ namespace Chuye.Kafka.Protocol.Management {
             writer.Write(Members);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             if (ErrorCode != ErrorCode.NoError) {
                 throw new ProtocolException(ErrorCode);
             }
@@ -60,16 +60,16 @@ namespace Chuye.Kafka.Protocol.Management {
         public String MemberId { get; set; }
         public JoinGroupMemberMetadata MemberMetadata { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             MemberId       = reader.ReadString();
             MemberMetadata = new JoinGroupMemberMetadata();
             MemberMetadata.FetchFrom(reader);
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(MemberId);
             if (MemberMetadata != null) {
-                MemberMetadata.WriteTo(writer);
+                MemberMetadata.SaveTo(writer);
             }
             else {
                 writer.Write((Byte[])null);

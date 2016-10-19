@@ -6,6 +6,6 @@ using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Serialization {
     interface IKafkaWriteable {
-        void WriteTo(KafkaStreamWriter writer);
+        void SaveTo(KafkaWriter writer);
     }
 }

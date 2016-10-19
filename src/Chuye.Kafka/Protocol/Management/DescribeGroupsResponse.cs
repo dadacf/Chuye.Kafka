@@ -21,15 +21,15 @@ namespace Chuye.Kafka.Protocol.Management {
     public class DescribeGroupsResponse : Response {
         public DescribeGroupsResponseDetail[] Details { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             Details = reader.ReadArray<DescribeGroupsResponseDetail>();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(Details);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             var errors = Details.Select(x => x.ErrorCode)
                 .Where(x => x != ErrorCode.NoError);
             if (errors.Any()) {
@@ -53,7 +53,7 @@ namespace Chuye.Kafka.Protocol.Management {
         public String Protocol { get; set; }
         public DescribeGroupsResponseMember[] Members { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             ErrorCode    = (ErrorCode)reader.ReadInt16();
             GroupId      = reader.ReadString();
             State        = reader.ReadString();
@@ -62,7 +62,7 @@ namespace Chuye.Kafka.Protocol.Management {
             Members      = reader.ReadArray<DescribeGroupsResponseMember>();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write((Int16)ErrorCode);
             writer.Write(GroupId);
             writer.Write(State);
@@ -79,7 +79,7 @@ namespace Chuye.Kafka.Protocol.Management {
         public JoinGroupMemberMetadata MemberMetadata { get; set; }
         public SyncGroupMemberAssignment MemberAssignment { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             MemberId         = reader.ReadString();
             ClientId         = reader.ReadString();
             ClientHost       = reader.ReadString();
@@ -91,7 +91,7 @@ namespace Chuye.Kafka.Protocol.Management {
             MemberAssignment.FetchFrom(reader);
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(MemberId);
             writer.Write(ClientId);
             writer.Write(ClientHost);
@@ -101,13 +101,13 @@ namespace Chuye.Kafka.Protocol.Management {
                 writer.Write((Byte[])null);
             }
             else {
-                MemberMetadata.WriteTo(writer);
+                MemberMetadata.SaveTo(writer);
             }
             if (MemberAssignment == null) {
                 writer.Write((Byte[])null);
             }
             else {
-                MemberAssignment.WriteTo(writer);
+                MemberAssignment.SaveTo(writer);
             }
         }
     }

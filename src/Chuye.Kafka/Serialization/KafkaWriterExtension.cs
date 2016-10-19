@@ -5,8 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Serialization {
-    internal static class KafkaStreamWriterExtension {
-        public static KafkaStreamWriter Write(this KafkaStreamWriter writer, Int32[] value) {
+    internal static class KafkaWriterExtension {
+        public static KafkaWriter Write(this KafkaWriter writer, Int32[] value) {
             if (value == null) {
                 writer.Write(-1);
                 return writer;
@@ -19,7 +19,7 @@ namespace Chuye.Kafka.Serialization {
             return writer;
         }
 
-        public static KafkaStreamWriter Write(this KafkaStreamWriter writer, Int64[] value) {
+        public static KafkaWriter Write(this KafkaWriter writer, Int64[] value) {
             if (value == null) {
                 writer.Write(-1);
                 return writer;
@@ -32,7 +32,7 @@ namespace Chuye.Kafka.Serialization {
             return writer;
         }
 
-        public static KafkaStreamWriter Write(this KafkaStreamWriter writer, String[] value) {
+        public static KafkaWriter Write(this KafkaWriter writer, String[] value) {
             if (value == null) {
                 writer.Write(-1);
                 return writer;
@@ -45,7 +45,7 @@ namespace Chuye.Kafka.Serialization {
             return writer;
         }
 
-        public static KafkaStreamWriter Write<T>(this KafkaStreamWriter writer, ICollection<T> value) where T : IKafkaWriteable {
+        public static KafkaWriter Write<T>(this KafkaWriter writer, ICollection<T> value) where T : IKafkaWriteable {
             if (value == null) {
                 writer.Write(-1);
                 return writer;
@@ -53,7 +53,7 @@ namespace Chuye.Kafka.Serialization {
 
             writer.Write((Int32)value.Count);
             foreach (var item in value) {
-                item.WriteTo(writer);
+                item.SaveTo(writer);
             }
             return writer;
         }

@@ -14,15 +14,15 @@ namespace Chuye.Kafka.Protocol {
     public class OffsetResponse : Response {
         public OffsetResponseTopicPartition[] TopicPartitions { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             TopicPartitions = reader.ReadArray<OffsetResponseTopicPartition>();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(TopicPartitions);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             var errors = TopicPartitions.SelectMany(x => x.PartitionOffsets)
                 .Select(x => x.ErrorCode)
                 .Where(x => x != ErrorCode.NoError);
@@ -36,12 +36,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public OffsetResponsePartitionOffset[] PartitionOffsets { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName = reader.ReadString();
             PartitionOffsets = reader.ReadArray<OffsetResponsePartitionOffset>();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(PartitionOffsets);
         }
@@ -56,13 +56,13 @@ namespace Chuye.Kafka.Protocol {
         public ErrorCode ErrorCode { get; set; }
         public Int64[] Offsets { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Partition = reader.ReadInt32();
             ErrorCode = (ErrorCode)reader.ReadInt16();
             Offsets   = reader.ReadInt64Array();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Partition);
             writer.Write((Int16)ErrorCode);
             writer.Write(Offsets);

@@ -20,17 +20,17 @@ namespace Chuye.Kafka.Protocol.Management {
         public ErrorCode ErrorCode { get; set; }
         public ListGroupsResponseGroup[] Groups { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ErrorCode = (ErrorCode)reader.ReadInt16();
             Groups    = reader.ReadArray<ListGroupsResponseGroup>();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write((Int16)ErrorCode);
             writer.Write(Groups);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             if (ErrorCode != ErrorCode.NoError) {
                 throw new ProtocolException(ErrorCode);
             }
@@ -41,12 +41,12 @@ namespace Chuye.Kafka.Protocol.Management {
         public String GroupId { get; set; }
         public String ProtocolType { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             GroupId      = reader.ReadString();
             ProtocolType = reader.ReadString();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(GroupId);
             writer.Write(ProtocolType);
         }

@@ -29,13 +29,13 @@ namespace Chuye.Kafka.Protocol {
             : base(ApiKey.FetchRequest) {
         }
 
-        public FetchRequest(String topic, Int32 partition, Int32 replicaId, Int64 fetchOffset, Int32 maxBytes = 1024 * 16, Int32 maxWaitTime = 1000)
+        public FetchRequest(String topic, Int32 partition, Int64 fetchOffset, Int32 maxBytes = 1024 * 16, Int32 maxWaitTime = 1000)
             : base(ApiKey.FetchRequest) {
             if (fetchOffset < 0) {
                 throw new ArgumentOutOfRangeException("fetchOffset");
             }
 
-            ReplicaId   = replicaId;
+            ReplicaId   = -1;
             MaxWaitTime = maxWaitTime;
             MinBytes    = 2048;
             TopicPartitions = new[] {
@@ -52,14 +52,14 @@ namespace Chuye.Kafka.Protocol {
             };
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(ReplicaId);
             writer.Write(MaxWaitTime);
             writer.Write(MinBytes);
             writer.Write(TopicPartitions);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ReplicaId       = reader.ReadInt32();
             MaxWaitTime     = reader.ReadInt32();
             MinBytes        = reader.ReadInt32();
@@ -71,12 +71,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public FetchRequestTopicPartitionDetail[] FetchOffsetDetails { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(FetchOffsetDetails);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName          = reader.ReadString();
             FetchOffsetDetails = reader.ReadArray<FetchRequestTopicPartitionDetail>();
         }
@@ -87,13 +87,13 @@ namespace Chuye.Kafka.Protocol {
         public Int64 FetchOffset { get; set; }
         public Int32 MaxBytes { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Partition);
             writer.Write(FetchOffset);
             writer.Write(MaxBytes);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Partition   = reader.ReadInt32();
             FetchOffset = reader.ReadInt64();
             MaxBytes    = reader.ReadInt32();

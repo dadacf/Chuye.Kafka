@@ -6,6 +6,6 @@ using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Serialization {
     interface IKafkaReadable {
-        void FetchFrom(KafkaStreamReader reader);
+        void FetchFrom(KafkaReader reader);
     }
 }

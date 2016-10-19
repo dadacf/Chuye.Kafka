@@ -26,13 +26,13 @@ namespace Chuye.Kafka.Protocol.Management {
             MemberId     = memberId;
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(GroupId);
             writer.Write(GenerationId);
             writer.Write(MemberId);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             GroupId = reader.ReadString();
             GenerationId = reader.ReadInt32();
             MemberId = reader.ReadString();

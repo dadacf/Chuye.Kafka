@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Chuye.Kafka {
+namespace Chuye.Kafka.Internal {
     public abstract class ObjectPool<T> where T : class {
         private readonly Stack<T> _avaliables;
         private readonly HashSet<T> _occupies;
@@ -84,7 +84,7 @@ namespace Chuye.Kafka {
             }
         }
 
-        public void DetachAvaliables() {
+        public void ReleaseAvaliables() {
             lock (_sync) {
                 while (_avaliables.Count > 0) {
                     var item = AcquireItem();

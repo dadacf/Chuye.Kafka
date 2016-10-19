@@ -14,15 +14,15 @@ namespace Chuye.Kafka.Protocol {
     public class ProduceResponse : Response {
         public ProduceResponseTopicPartition[] TopicPartitions { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             TopicPartitions = reader.ReadArray<ProduceResponseTopicPartition>();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(TopicPartitions);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             var errors = TopicPartitions.SelectMany(x => x.Details)
                 .Select(x => x.ErrorCode)
                 .Where(x => x != ErrorCode.NoError);
@@ -36,12 +36,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public ProduceResponseTopicPartitionDetail[] Details { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName = reader.ReadString();
             Details   = reader.ReadArray<ProduceResponseTopicPartitionDetail>();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(Details);
         }
@@ -53,13 +53,13 @@ namespace Chuye.Kafka.Protocol {
         public ErrorCode ErrorCode { get; set; }
         public Int64 Offset { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Partition = reader.ReadInt32();
             ErrorCode = (ErrorCode)reader.ReadInt16();
             Offset    = reader.ReadInt64();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Partition);
             writer.Write((Int16)ErrorCode);
             writer.Write(Offset);

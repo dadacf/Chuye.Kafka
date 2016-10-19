@@ -12,9 +12,10 @@ namespace Chuye.Kafka.Test {
     public class ConnectionTest {
         [Fact]
         public void FetchRequestSubmit() {
-            var u = new Uri("http://127.0.0.1:9092");
+            //var u = new Uri("http://ubuntu-16:9093");
+            var u = new Uri("http://127.0.0.1:9093");
             var c = new Connection(u);
-            var req = new FetchRequest("demoTopic", 0, 0, 0L);
+            var req = new MetadataRequest();
             var resp = c.Submit(req);
         }
 

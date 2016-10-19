@@ -46,7 +46,7 @@ namespace Chuye.Kafka.Protocol.Management {
         }
 
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(GroupId);
             writer.Write(SessionTimeout);
             writer.Write(MemberId);
@@ -54,7 +54,7 @@ namespace Chuye.Kafka.Protocol.Management {
             writer.Write(GroupProtocols);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             GroupId        = reader.ReadString();
             SessionTimeout = reader.ReadInt32();
             MemberId       = reader.ReadString();
@@ -67,12 +67,12 @@ namespace Chuye.Kafka.Protocol.Management {
         public String Protocol { get; set; }
         public JoinGroupMemberMetadata MemberMetadata { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Protocol);
-            MemberMetadata.WriteTo(writer);
+            MemberMetadata.SaveTo(writer);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Protocol = reader.ReadString();
             MemberMetadata = new JoinGroupMemberMetadata();
             MemberMetadata.FetchFrom(reader);
@@ -84,13 +84,13 @@ namespace Chuye.Kafka.Protocol.Management {
         public String[] Topics { get; set; }
         public Byte[] UserData { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             //writer.Write(Version);
             //writer.Write(Topics);
             //writer.Write(UserData);
 
             using (var stream = new MemoryStream(4096)) {
-                var writer2 = new KafkaStreamWriter(stream);
+                var writer2 = new KafkaWriter(stream);
                 writer2.Write(Version);
                 writer2.Write(Topics);
                 writer2.Write(UserData);
@@ -102,7 +102,7 @@ namespace Chuye.Kafka.Protocol.Management {
             }
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             //Version = reader.ReadInt16();
             //Topics = reader.ReadStrings();
             //UserData = reader.ReadBytes();
@@ -112,7 +112,7 @@ namespace Chuye.Kafka.Protocol.Management {
                 return;
             }
             using (var stream = new MemoryStream(protocolMetadata))
-            using (var reader2 = new KafkaStreamReader(stream)) {
+            using (var reader2 = new KafkaReader(stream)) {
                 Version  = reader2.ReadInt16();
                 Topics   = reader2.ReadStrings();
                 UserData = reader2.ReadBytes();

@@ -15,15 +15,15 @@ namespace Chuye.Kafka.Protocol {
     public class OffsetFetchResponse : Response {
         public OffsetFetchResponseTopicPartition[] TopicPartitions { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             TopicPartitions = reader.ReadArray<OffsetFetchResponseTopicPartition>();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(TopicPartitions);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             var errors = TopicPartitions.SelectMany(x => x.Details)
                 .Select(x => x.ErrorCode)
                 .Where(x => x != ErrorCode.NoError);
@@ -37,12 +37,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public OffsetFetchResponseTopicPartitionDetail[] Details { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName = reader.ReadString();
             Details   = reader.ReadArray<OffsetFetchResponseTopicPartitionDetail>();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(Details);
         }
@@ -62,14 +62,14 @@ namespace Chuye.Kafka.Protocol {
         //* GROUP_AUTHORIZATION_FAILED (30)
         public ErrorCode ErrorCode { get; set; }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Partition = reader.ReadInt32();
             Offset    = reader.ReadInt64();
             Metadata  = reader.ReadString();
             ErrorCode = (ErrorCode)reader.ReadInt16();
         }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Partition);
             writer.Write(Offset);
             writer.Write(Metadata);

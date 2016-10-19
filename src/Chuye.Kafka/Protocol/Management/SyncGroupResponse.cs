@@ -13,7 +13,7 @@ namespace Chuye.Kafka.Protocol.Management {
         public ErrorCode ErrorCode { get; set; }
         public SyncGroupMemberAssignment MemberAssignment { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             //Possible Error Codes:
             //* GROUP_COORDINATOR_NOT_AVAILABLE (15)
             //* NOT_COORDINATOR_FOR_GROUP (16)
@@ -26,12 +26,12 @@ namespace Chuye.Kafka.Protocol.Management {
             MemberAssignment.FetchFrom(reader);
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write((Int16)ErrorCode);
-            MemberAssignment.WriteTo(writer);
+            MemberAssignment.SaveTo(writer);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             if (ErrorCode != ErrorCode.NoError) {
                 throw new ProtocolException(ErrorCode);
             }

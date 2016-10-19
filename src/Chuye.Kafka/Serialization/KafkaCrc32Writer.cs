@@ -6,20 +6,20 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Serialization {
-    class KafkaBinaryCRCWriter {
-        private KafkaStreamWriter _writer;
+    class KafkaCrc32Writer {
+        private KafkaWriter _writer;
         private Int64 _previousPosition;
 
-        public KafkaBinaryCRCWriter(KafkaStreamWriter writer) {
+        public KafkaCrc32Writer(KafkaWriter writer) {
             _writer = writer;
         }
 
-        public void BeginWrite() {
+        public void MarkAsStart() {
             _previousPosition = _writer.BaseStream.Position;
             _writer.Write(0);
         }
 
-        public Int32 EndWrite() {
+        public Int32 Caculate() {
             var currentPosition = _writer.BaseStream.Position;
             var length = (Int32)(currentPosition - _previousPosition - 4);
             var buffer = new Byte[length];

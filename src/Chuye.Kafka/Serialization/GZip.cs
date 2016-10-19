@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Serialization {
     static class GZip {
-        public static Byte[] Compress(byte[] data) {
+        public static Byte[] Compress(Byte[] data) {
             return Compress(data, 0, data.Length);
         }
 
-        public static Byte[] Compress(byte[] data, Int32 offset, Int32 size) {
+        public static Byte[] Compress(Byte[] data, Int32 offset, Int32 size) {
             using (var output = new MemoryStream())
             using (var gzip = new GZipStream(output, CompressionMode.Compress)) {
                 gzip.Write(data, offset, size);
@@ -21,7 +21,7 @@ namespace Chuye.Kafka.Serialization {
             }
         }
 
-        public static Byte[] Decompress(byte[] data) {
+        public static Byte[] Decompress(Byte[] data) {
             using (var input = new MemoryStream(data))
             using (var gzip = new GZipStream(input, CompressionMode.Decompress))
             using (var output = new MemoryStream()) {

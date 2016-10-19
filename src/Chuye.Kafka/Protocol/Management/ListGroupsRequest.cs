@@ -12,10 +12,10 @@ namespace Chuye.Kafka.Protocol.Management {
             : base(ApiKey.ListGroupsRequest) {
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
         }
     }
 }

@@ -15,11 +15,11 @@ namespace Chuye.Kafka.Protocol.Management {
             : base(ApiKey.GroupCoordinatorRequest) {
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(GroupId);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             GroupId = reader.ReadString();
         }
     }

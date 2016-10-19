@@ -17,15 +17,15 @@ namespace Chuye.Kafka.Protocol.Management {
         //* GROUP_AUTHORIZATION_FAILED (30)
         public ErrorCode ErrorCode { get; set; }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ErrorCode = (ErrorCode)reader.ReadInt16();
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write((Int16)ErrorCode);
         }
 
-        public override void ThrowIfFail() {
+        public override void TryThrowFirstErrorOccured() {
             if (ErrorCode != ErrorCode.NoError) {
                 throw new ProtocolException(ErrorCode);
             }

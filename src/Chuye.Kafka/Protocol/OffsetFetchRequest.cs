@@ -39,12 +39,12 @@ namespace Chuye.Kafka.Protocol {
             TopicPartitions = topicPartitions;
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(ConsumerGroup);
             writer.Write(TopicPartitions);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             ConsumerGroup   = reader.ReadString();
             TopicPartitions = reader.ReadArray<OffsetFetchRequestTopicPartition>();
         }
@@ -54,12 +54,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public Int32[] Partitions { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(Partitions);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName  = reader.ReadString();
             Partitions = reader.ReadInt32Array();
         }

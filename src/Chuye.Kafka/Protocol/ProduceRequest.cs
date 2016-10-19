@@ -128,13 +128,13 @@ namespace Chuye.Kafka.Protocol {
             }
         }
 
-        protected override void SerializeContent(KafkaStreamWriter writer) {
+        protected override void SerializeContent(KafkaWriter writer) {
             writer.Write((Int16)RequiredAcks);
             writer.Write(Timeout);
             writer.Write(TopicPartitions);
         }
 
-        protected override void DeserializeContent(KafkaStreamReader reader) {
+        protected override void DeserializeContent(KafkaReader reader) {
             RequiredAcks = (AcknowlegeStrategy)reader.ReadInt16();
             Timeout = reader.ReadInt32();
             TopicPartitions = reader.ReadArray<ProduceRequestTopicPartition>();
@@ -145,12 +145,12 @@ namespace Chuye.Kafka.Protocol {
         public String TopicName { get; set; }
         public ProduceRequestTopicDetail[] Details { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(TopicName);
             writer.Write(Details);
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             TopicName = reader.ReadString();
             Details = reader.ReadArray<ProduceRequestTopicDetail>();
         }
@@ -161,15 +161,15 @@ namespace Chuye.Kafka.Protocol {
         public Int32 MessageSetSize { get; private set; }
         public MessageSet MessageSet { get; set; }
 
-        public void WriteTo(KafkaStreamWriter writer) {
+        public void SaveTo(KafkaWriter writer) {
             writer.Write(Partition);
             var lengthWriter = new KafkaLengthWriter(writer);
-            lengthWriter.BeginWrite();
-            MessageSet.WriteTo(writer);
-            MessageSetSize = lengthWriter.EndWrite();
+            lengthWriter.MarkAsStart();
+            MessageSet.SaveTo(writer);
+            MessageSetSize = lengthWriter.Caculate();
         }
 
-        public void FetchFrom(KafkaStreamReader reader) {
+        public void FetchFrom(KafkaReader reader) {
             Partition      = reader.ReadInt32();
             MessageSetSize = reader.ReadInt32();
             throw new NotImplementedException();

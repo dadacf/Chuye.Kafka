@@ -7,14 +7,14 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Serialization {
-    public class KafkaStreamWriter : IDisposable {
+    public class KafkaWriter : IDisposable {
         private readonly BinaryWriter _writer;
 
         internal Stream BaseStream {
             get { return _writer.BaseStream; }
         }
 
-        public KafkaStreamWriter(Stream stream) {
+        public KafkaWriter(Stream stream) {
             _writer = new BinaryWriter(stream, Encoding.UTF8, true);
         }
 
