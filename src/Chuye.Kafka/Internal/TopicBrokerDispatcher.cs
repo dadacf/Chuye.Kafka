@@ -13,18 +13,19 @@ namespace Chuye.Kafka.Internal {
         private readonly ReaderWriterLockSlim _sync;
         private readonly Client _client;
 
-        protected List<TopicPartition> Topics {
+        public IReadOnlyList<TopicPartition> Topics {
             get { return _topics; }
         }
-        protected List<Broker> Brokers {
+
+        public IReadOnlyList<Broker> Brokers {
             get { return _brokers; }
         }
 
-        protected Client Client {
+        public Client Client {
             get { return _client; }
         }
 
-        protected Broker SelectCached(String topic, Int32 partition) {
+        private Broker SelectCached(String topic, Int32 partition) {
             var targetTopic = _topics.Find(x => x.Name == topic && x.Partition == partition);
             if (targetTopic == null) {
                 return null;
@@ -77,7 +78,7 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        protected IList<Broker> SelectCached(String topic) {
+        private IList<Broker> SelectCached(String topic) {
             var targetTopics = _topics.FindAll(x => x.Name == topic);
             if (targetTopics.Count == 0) {
                 return null;

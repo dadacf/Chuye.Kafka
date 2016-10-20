@@ -35,18 +35,18 @@ namespace Chuye.Kafka {
             return _client.Produce(topic, topicPartition.Partition, messages);
         }
 
-        protected TopicPartition SelectTopicPartition(String topic) {
+        protected virtual TopicPartition SelectTopicPartition(String topic) {
             return _partitionDispatcher.SequentialSelect(topic);
         }
     }
 
     public class ThrottledProducer : Producer, IDisposable {
-        private readonly Dictionary<TopicPartition, PartitionedMessageQueue> _queues;
+        private readonly Dictionary<TopicPartition, DelayedMessageQueue> _queues;
         private readonly ReaderWriterLockSlim _sync;
 
         public ThrottledProducer(Option option)
             : base(option) {
-            _queues = new Dictionary<TopicPartition, PartitionedMessageQueue>();
+            _queues = new Dictionary<TopicPartition, DelayedMessageQueue>();
             _sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         }
 
@@ -56,7 +56,7 @@ namespace Chuye.Kafka {
 
         public override Int64 Send(String topic, IList<Message> messages) {
             var topicPartition = base.SelectTopicPartition(topic);
-            PartitionedMessageQueue queue;
+            DelayedMessageQueue queue;
             _sync.EnterUpgradeableReadLock();
             try {
                 if (_queues.TryGetValue(topicPartition, out queue)) {
@@ -66,7 +66,7 @@ namespace Chuye.Kafka {
 
                 _sync.EnterWriteLock();
                 try {
-                    queue = new PartitionedMessageQueue(topicPartition, Client);
+                    queue = new DelayedMessageQueue(topicPartition, Client);
                     _queues.Add(topicPartition, queue);
                     queue.Enqueue(messages);
                     return 0L;

@@ -8,11 +8,16 @@ using Chuye.Kafka.Serialization;
 namespace Chuye.Kafka.Protocol.Management {
     //GroupCoordinatorRequest => GroupId
     //  GroupId => string
-    public class GroupCoordinatorRequest : Request {        
+    public class GroupCoordinatorRequest : Request {
         public String GroupId { get; set; }
 
         public GroupCoordinatorRequest()
             : base(ApiKey.GroupCoordinatorRequest) {
+        }
+
+        public GroupCoordinatorRequest(String groupId)
+            : this() {
+            GroupId = GroupId;
         }
 
         protected override void SerializeContent(KafkaWriter writer) {

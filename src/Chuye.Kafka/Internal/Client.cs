@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Chuye.Kafka.Protocol;
+using Chuye.Kafka.Protocol.Management;
 
 namespace Chuye.Kafka.Internal {
     public class Client {
@@ -15,11 +16,15 @@ namespace Chuye.Kafka.Internal {
         //todo: chicken-and-egg problem
         private /*readonly*/ TopicBrokerDispatcher _topicBrokerDispatcher;
         private readonly Option _option;
-
+        
         public event EventHandler<RequestSubmittingEventArgs> RequestSubmitting;
 
         internal Option Option {
             get { return _option; }
+        }
+
+        internal ExistingBrokerDispatcher ExistingBrokerDispatcher {
+            get { return _existingBrokerDispatcher; }
         }
 
         public Client(Option option)
@@ -37,7 +42,6 @@ namespace Chuye.Kafka.Internal {
             _topicBrokerDispatcher = topicBrokerDispatcher;
         }
 
-
         private void EnsureLegalTopicSpelling(String topic) {
             if (topic == null) {
                 throw new ArgumentNullException("topic");
@@ -48,7 +52,7 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        private Response SubmitRequest(Uri uri, Request request) {
+        internal Response SubmitRequest(Uri uri, Request request) {
             var @event = new RequestSubmittingEventArgs(uri, request);
             OnRequestSubmitting(@event);
             var connectionFactory = _option.GetConnectionFactory();
