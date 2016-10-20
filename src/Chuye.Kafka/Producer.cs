@@ -31,12 +31,12 @@ namespace Chuye.Kafka {
         }
 
         public virtual Int64 Send(String topic, IList<Message> messages) {
-            var topicPartition = SelectTopicPartition(topic);
+            var topicPartition = SelectNextTopicPartition(topic);
             return _client.Produce(topic, topicPartition.Partition, messages);
         }
 
-        protected virtual TopicPartition SelectTopicPartition(String topic) {
-            return _partitionDispatcher.SequentialSelect(topic);
+        protected virtual TopicPartition SelectNextTopicPartition(String topic) {
+            return _partitionDispatcher.SelectSequentialPartition(topic);
         }
     }
 
@@ -55,7 +55,7 @@ namespace Chuye.Kafka {
         }
 
         public override Int64 Send(String topic, IList<Message> messages) {
-            var topicPartition = base.SelectTopicPartition(topic);
+            var topicPartition = base.SelectNextTopicPartition(topic);
             DelayedMessageQueue queue;
             _sync.EnterUpgradeableReadLock();
             try {

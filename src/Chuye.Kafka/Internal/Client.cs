@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -27,6 +28,10 @@ namespace Chuye.Kafka.Internal {
             get { return _existingBrokerDispatcher; }
         }
 
+        internal TopicBrokerDispatcher TopicBrokerDispatcher {
+            get { return _topicBrokerDispatcher; }
+        }
+
         public Client(Option option)
             : this(option, new ExistingBrokerDispatcher(option.BrokerUris)) {
         }
@@ -52,9 +57,15 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
+        internal Response SubmitRequest(Broker broker, Request request) {
+            return SubmitRequest(broker.ToUri(), request);
+        }
+
         internal Response SubmitRequest(Uri uri, Request request) {
             var @event = new RequestSubmittingEventArgs(uri, request);
             OnRequestSubmitting(@event);
+            Debug.WriteLine(String.Format("[{0:d2}] {1:HH:mm:ss.fff} Submitting {2} {3}",
+                Thread.CurrentThread.ManagedThreadId, DateTime.Now, @event.Uri.AbsoluteUri, @event.Request));
             var connectionFactory = _option.GetConnectionFactory();
             using (var connection = connectionFactory.Connect(@event.Uri)) {
                 return connection.Submit(@event.Request);
@@ -85,7 +96,7 @@ namespace Chuye.Kafka.Internal {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.Select(topic, partition);
             var request = new ProduceRequest(topic, partition, messages);
-            var response = (ProduceResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (ProduceResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions[0].Details[0].Offset;
         }
@@ -98,7 +109,7 @@ namespace Chuye.Kafka.Internal {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.Select(topic, partition);
             var request = new FetchRequest(topic, partition, fetchOffset);
-            var response = (FetchResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (FetchResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions.SelectMany(x => x.MessageBodys)
                 .SelectMany(x => x.MessageSet.Items)
@@ -110,7 +121,7 @@ namespace Chuye.Kafka.Internal {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.Select(topic, partition);
             var request = new OffsetRequest(topic, new[] { partition }, option);
-            var response = (OffsetResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (OffsetResponse)SubmitRequest(broker, request);
             var errors = response.TopicPartitions
                 .SelectMany(r => r.PartitionOffsets)
                 .Where(x => x.ErrorCode != ErrorCode.NoError)
@@ -139,7 +150,7 @@ namespace Chuye.Kafka.Internal {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.Select(topic, partition);
             var request = new OffsetFetchRequest(topic, new[] { partition }, groupId);
-            var response = (OffsetFetchResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (OffsetFetchResponse)SubmitRequest(broker, request);
             var errors = response.TopicPartitions
                 .SelectMany(r => r.Details)
                 .Where(x => x.ErrorCode != ErrorCode.NoError)
@@ -168,7 +179,7 @@ namespace Chuye.Kafka.Internal {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.Select(topic, partition);
             var request = OffsetCommitRequest.CreateV0(topic, partition, groupId, offset);
-            var response = (OffsetCommitResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (OffsetCommitResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions[0].Details[0].ErrorCode;
         }

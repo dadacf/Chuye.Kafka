@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -9,10 +10,13 @@ namespace Chuye.Kafka {
     public class Option {
         private Uri[] _brokerUris;
         private ConnectionFactory _factory;
+        private NameValueCollection _property;
 
         public IReadOnlyList<Uri> BrokerUris {
             get { return _brokerUris; }
         }
+
+        public NameValueCollection Property { get; }
 
         public Option(params Uri[] brokerUris) {
             _brokerUris = brokerUris;

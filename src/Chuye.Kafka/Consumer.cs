@@ -33,15 +33,15 @@ namespace Chuye.Kafka {
         }
 
         public IEnumerable<Message> Fetch(String topic) {
-            var topicPartition = SelectTopicPartition(topic);
+            var topicPartition = SelectNextTopicPartition(topic);
             var earliestOffset = _client.Offset(topicPartition.Name, topicPartition.Partition, OffsetOption.Earliest);
             //todo: Offset saving
             //todo: Rebalance
             return _client.Fetch(topic, topicPartition.Partition, earliestOffset);
         }
 
-        protected TopicPartition SelectTopicPartition(String topic) {
-            return _partitionDispatcher.SequentialSelect(topic);
+        protected virtual TopicPartition SelectNextTopicPartition(String topic) {
+            return _partitionDispatcher.SelectSequentialPartition(topic);
         }
     }
 }

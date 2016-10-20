@@ -78,7 +78,7 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        private IList<Broker> SelectCached(String topic) {
+        private IList<Broker> SelectCachedBrokers(String topic) {
             var targetTopics = _topics.FindAll(x => x.Name == topic);
             if (targetTopics.Count == 0) {
                 return null;
@@ -90,10 +90,10 @@ namespace Chuye.Kafka.Internal {
             return brokers;
         }
 
-        public IList<Broker> Select(String topic) {
+        public IList<Broker> SelectBrokers(String topic) {
             _sync.EnterUpgradeableReadLock();
             try {
-                var brokers = SelectCached(topic);
+                var brokers = SelectCachedBrokers(topic);
                 if (brokers != null) {
                     return brokers;
                 }
@@ -109,7 +109,7 @@ namespace Chuye.Kafka.Internal {
                         }
                     }
 
-                    brokers = SelectCached(topic);
+                    brokers = SelectCachedBrokers(topic);
                     if (brokers == null) {
                         throw new ProtocolException(ErrorCode.NotLeaderForPartition);
                     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -10,17 +11,17 @@ using Chuye.Kafka.Protocol;
 namespace Chuye.Kafka.Test {
     public class Program {
         public static void Main(string[] args) {
-            var u = new Uri("http://ubuntu-16:9093");
-            var o = new Option(u);
-            var p = new Producer(o);
-
-            p.Client.RequestSubmitting += (obj, evt) => {
-                Console.WriteLine("RequestSubmitting {0}, {1}", evt.Uri.AbsoluteUri, evt.Request.GetType().Name);
+            Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
+            var option = new Option(new Uri("http://ubuntu-16:9094"), new Uri("http://ubuntu-16:9093"));
+            var client = new Client(option);
+            client.RequestSubmitting += (_, e) => {
+                e.Uri = new Uri(e.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
+                //e.Request.Dump();
             };
-
-            for (int i = 0; i < 10; i++) {
-                p.Send("demoTopic1", "p#" + i);
-            }
+            var coordinator = new Coordinator(client, "demoGroupId");
+            //coordinator.ListGroups().Dump();
+            //coordinator.DescribeGroups(new String[0]).Dump();
+            coordinator.Initialize("demoTopic1");
         }
     }
 }

@@ -29,11 +29,11 @@ namespace Chuye.Kafka.Protocol.Management {
             : base(ApiKey.JoinGroupRequest) {
         }
 
-        public JoinGroupRequest(String groupId, String memberId, String[] topics)
+        public JoinGroupRequest(String groupId, String memberId, String[] topics, Int32 sessionTimeout = 5000)
             : base(ApiKey.JoinGroupRequest) {
             GroupId        = groupId;
             MemberId       = memberId;
-            SessionTimeout = 10000;
+            SessionTimeout = sessionTimeout;
             ProtocolType   = Protocol_Type;
             GroupProtocols = new[] {
                 new JoinGroupRequestGroupProtocol {
