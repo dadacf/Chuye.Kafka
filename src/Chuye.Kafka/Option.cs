@@ -12,6 +12,7 @@ namespace Chuye.Kafka {
         private Uri[] _brokerUris;
         private ConnectionFactory _factory;
         private Client _client;
+        private CoordinatorAgent _coordinatorAgent;
         private NameValueCollection _property;
 
         public IReadOnlyList<Uri> BrokerUris {
@@ -48,6 +49,15 @@ namespace Chuye.Kafka {
             //同 GetSharedConnections()
             Interlocked.CompareExchange(ref _client, new Client(this), null);
             return _client;
+        }
+
+        internal CoordinatorAgent GetSharedCoordinatorAgent() {
+            if (_coordinatorAgent != null) {
+                return _coordinatorAgent;
+            }
+            //同 GetSharedConnections()
+            Interlocked.CompareExchange(ref _coordinatorAgent, new CoordinatorAgent(this), null);
+            return _coordinatorAgent;
         }
     }
 }

@@ -20,8 +20,16 @@ namespace Chuye.Kafka.Internal {
         private JoinGroupResponseMember[] _members;
         private Timer _heartbeatTimer;
         private Int32? _sessionTimeout;
+        private CoordinatorState _state;
+        private Dictionary<String, Int32[]> _partitionAssignments;
+
+        public event EventHandler<CoordinatorStateChangedEventArgs> StateChanged;
 
         public String[] Topics { get; set; }
+
+        public CoordinatorState State {
+            get { return _state; }
+        }
 
         public Coordinator(Option option, String groupId) {
             _option              = option;
@@ -30,6 +38,15 @@ namespace Chuye.Kafka.Internal {
             _memberId            = String.Empty;
             _heartbeatTimer      = new Timer(HeartbeatCallback);
             _partitionDispatcher = new TopicPartitionDispatcher(_client.TopicBrokerDispatcher);
+        }
+
+        public Int32[] GetPartitionAssigned(String topic) {
+            if (_partitionAssignments == null) {
+                return null;
+            }
+            Int32[] partitions;
+            _partitionAssignments.TryGetValue(topic, out partitions);
+            return partitions;
         }
 
         private void HeartbeatCallback(Object state) {
@@ -50,6 +67,13 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
+        private void OnStateChange(CoordinatorState state) {
+            _state = state;
+            if (StateChanged != null) {
+                StateChanged(this, new CoordinatorStateChangedEventArgs(state));
+            }
+        }
+
         public void RebalanceAsync() {
             if (String.IsNullOrWhiteSpace(_memberId)) {
                 Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #1 Start rebalace at group '{2}'",
@@ -57,10 +81,15 @@ namespace Chuye.Kafka.Internal {
             }
 
             //1. Group Coordinator
+            OnStateChange(CoordinatorState.Unkown);
             EnsureCoordinateBrokerExsiting();
 
             //2. Join Group
+            OnStateChange(CoordinatorState.Joining);
             var joinGroupResponse = JoinGroup(_groupId, _memberId, Topics);
+            joinGroupResponse.TryThrowFirstErrorOccured();
+
+            OnStateChange(CoordinatorState.AwaitingSync);
             _generationId = joinGroupResponse.GenerationId;
             _memberId     = joinGroupResponse.MemberId;
             _members      = joinGroupResponse.Members;
@@ -79,9 +108,9 @@ namespace Chuye.Kafka.Internal {
                 syncGroupResponse = SyncGroup(_groupId, _memberId, _generationId, assignments);
             }
 
-            foreach (var partitionAssignment in syncGroupResponse.MemberAssignment.PartitionAssignments) {
-                ShowTopicPartitionAssigned(partitionAssignment);
-            }
+            syncGroupResponse.TryThrowFirstErrorOccured();
+            ShowTopicPartitionAssigned(syncGroupResponse.MemberAssignment);
+            OnStateChange(CoordinatorState.Stable);
 
             //4. Heartbeat
             Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #5 Member '{2}' heartbeat at group '{3}'",
@@ -89,9 +118,19 @@ namespace Chuye.Kafka.Internal {
             _heartbeatTimer.Change(0L, Timeout.Infinite);
         }
 
-        private void ShowTopicPartitionAssigned(SyncGroupPartitionAssignment assignment) {
-            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', got topic '{3}' and partition {4}",
-               DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, assignment.Topic, String.Join("|", assignment.Partitions.OrderBy(x => x)));
+        private void ShowTopicPartitionAssigned(SyncGroupMemberAssignment assignment) {
+            if (_partitionAssignments == null) {
+                _partitionAssignments = new Dictionary<String, Int32[]>();
+            }
+            else {
+                _partitionAssignments.Clear();
+            }
+
+            foreach (var partitionAssignment in assignment.PartitionAssignments) {
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', got topic '{3}' and partition {4}",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
+                _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
+            }
         }
 
         private void EnsureCoordinateBrokerExsiting() {

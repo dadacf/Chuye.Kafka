@@ -12,14 +12,14 @@ namespace Chuye.Kafka.Internal {
     public class Client {
         private const String TermPattern = "[a-zA-Z][a-zA-Z0-9_-]*";
         private const String __consumer_offsets = "__consumer_offsets";
-        private readonly ExistingBrokerDispatcher _existingBrokerDispatcher;
+        private readonly KnownBrokerDispatcher _existingBrokerDispatcher;
         private readonly TopicBrokerDispatcher _topicBrokerDispatcher;
         private readonly ConnectionFactory _connectionFactory;
 
         public event EventHandler<RequestSendingEventArgs> RequestSending;
         public event EventHandler<ResponseReceivedEventArg> ResponseReceived;
         
-        internal ExistingBrokerDispatcher ExistingBrokerDispatcher {
+        internal KnownBrokerDispatcher ExistingBrokerDispatcher {
             get { return _existingBrokerDispatcher; }
         }
 
@@ -32,10 +32,10 @@ namespace Chuye.Kafka.Internal {
         }
 
         internal Client(ConnectionFactory connectionFactory, IList<Uri> exitingBroker)
-            : this(connectionFactory, new ExistingBrokerDispatcher(exitingBroker)) {
+            : this(connectionFactory, new KnownBrokerDispatcher(exitingBroker)) {
         }
 
-        internal Client(ConnectionFactory connectionFactory, ExistingBrokerDispatcher existingBrokerDispatcher) {
+        internal Client(ConnectionFactory connectionFactory, KnownBrokerDispatcher existingBrokerDispatcher) {
             _connectionFactory = connectionFactory;
             _existingBrokerDispatcher = existingBrokerDispatcher;
             _topicBrokerDispatcher = new TopicBrokerDispatcher(this);

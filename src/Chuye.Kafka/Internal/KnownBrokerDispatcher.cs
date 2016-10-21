@@ -5,11 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Internal {
-    class ExistingBrokerDispatcher {
+    class KnownBrokerDispatcher {
         private readonly IList<Uri> _existingbrokerUris;
         private Int32 _sequence;
 
-        public ExistingBrokerDispatcher(IList<Uri> existingbrokerUris) {
+        public KnownBrokerDispatcher(IList<Uri> existingbrokerUris) {
             _existingbrokerUris = existingbrokerUris;
             _sequence = 0;
         }
