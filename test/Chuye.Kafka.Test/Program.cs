@@ -19,11 +19,10 @@ namespace Chuye.Kafka.Test {
 
         static void SendRequest() {
             var option = new Option(new Uri("http://ubuntu-16:9094"), new Uri("http://ubuntu-16:9093"));
-            var client = new Client(option);
-            client.RequestSending += (_, e) => {
+            option.GetSharedClient().RequestSending += (_, e) => {
                 e.Uri = new Uri(e.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
             };
-            var coordinator = new Coordinator(client, "demoGroupId");
+            var coordinator = new Coordinator(option, "demoGroupId");
             coordinator.Topics = new[] { "demoTopic1" };
             //coordinator.ListGroups().Dump();
             //coordinator.DescribeGroups(new[] {"demoTopic1"}).Dump();

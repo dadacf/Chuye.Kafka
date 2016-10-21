@@ -7,21 +7,16 @@ using System.Threading.Tasks;
 using Chuye.Kafka.Internal;
 
 namespace Chuye.Kafka {
-    public interface IProducer {
-        Int64 Send(String topic, params String[] messages);
-        Int64 Send(String topic, IList<Message> messages);
-    }
-
-    public class Producer : IProducer {
+    public class Producer {
         private readonly Client _client;
         private readonly TopicPartitionDispatcher _partitionDispatcher;
-
-        public Client Client {
+        
+        protected Client Client {
             get { return _client; }
         }
 
         public Producer(Option option) {
-            _client = new Client(option);
+            _client              = option.GetSharedClient();
             _partitionDispatcher = new TopicPartitionDispatcher(_client);
             _client.ReplaceDispatcher(_partitionDispatcher);
         }
@@ -36,7 +31,7 @@ namespace Chuye.Kafka {
         }
 
         protected virtual TopicPartition SelectNextTopicPartition(String topic) {
-            return _partitionDispatcher.SelectSequentialPartition(topic);
+            return _partitionDispatcher.SelectPartition(topic);
         }
     }
 

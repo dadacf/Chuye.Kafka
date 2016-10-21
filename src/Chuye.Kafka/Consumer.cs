@@ -7,12 +7,7 @@ using Chuye.Kafka.Internal;
 using Chuye.Kafka.Protocol;
 
 namespace Chuye.Kafka {
-    public interface IConsumer {
-        String GroupId { get; }
-        IEnumerable<Message> Fetch(String topic);
-    }
-
-    public class Consumer : IConsumer {
+    public class Consumer {
         private readonly String _groupId;
         private readonly Client _client;
         private readonly TopicPartitionDispatcher _partitionDispatcher;
@@ -26,7 +21,7 @@ namespace Chuye.Kafka {
         }
 
         public Consumer(Option option, String groupId) {
-            _client = new Client(option);
+            _client = option.GetSharedClient();
             _groupId = groupId;
             _partitionDispatcher = new TopicPartitionDispatcher(_client);
             _client.ReplaceDispatcher(_partitionDispatcher);
@@ -41,7 +36,7 @@ namespace Chuye.Kafka {
         }
 
         protected virtual TopicPartition SelectNextTopicPartition(String topic) {
-            return _partitionDispatcher.SelectSequentialPartition(topic);
+            return _partitionDispatcher.SelectPartition(topic);
         }
     }
 }

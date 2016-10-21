@@ -10,6 +10,7 @@ using Chuye.Kafka.Protocol.Management;
 
 namespace Chuye.Kafka.Internal {
     public class Coordinator {
+        private readonly Option _option;
         private readonly Client _client;
         private readonly TopicPartitionDispatcher _partitionDispatcher;
         private readonly String _groupId;
@@ -22,29 +23,26 @@ namespace Chuye.Kafka.Internal {
 
         public String[] Topics { get; set; }
 
-        public Coordinator(Option option, String groupId)
-            : this(new Client(option), groupId) {
-        }
-
-        public Coordinator(Client client, String groupId) {
-            _client = client;
-            _groupId = groupId;
+        public Coordinator(Option option, String groupId) {
+            _option              = option;
+            _client              = option.GetSharedClient();
+            _groupId             = groupId;
+            _memberId            = String.Empty;
+            _heartbeatTimer      = new Timer(HeartbeatCallback);
             _partitionDispatcher = new TopicPartitionDispatcher(_client);
             _client.ReplaceDispatcher(_partitionDispatcher);
-            _memberId = String.Empty;
-            _heartbeatTimer = new Timer(HeartbeatCallback);
         }
 
         private void HeartbeatCallback(Object state) {
             var heartbeatResponse = Heartbeat(_groupId, _memberId, _generationId);
             //heartbeatResponse.TryThrowFirstErrorOccured();
             if (heartbeatResponse.ErrorCode == ErrorCode.RebalanceInProgressCode) {
-                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Start rebalace at group '{2}' for '{3}'",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, heartbeatResponse.ErrorCode));
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #1 Start rebalace at group '{2}' for '{3}'",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, heartbeatResponse.ErrorCode);
                 RebalanceAsync();
             }
             else {
-                var sessionTimeoutStr = _client.Option.Property.Get("JoinGroupRequest.SessionTimeout");
+                var sessionTimeoutStr = _option.Property.Get("JoinGroupRequest.SessionTimeout");
                 Int32 sessionTimeout;
                 if (Int32.TryParse(sessionTimeoutStr, out sessionTimeout)) {
                     _sessionTimeout = sessionTimeout;
@@ -55,8 +53,8 @@ namespace Chuye.Kafka.Internal {
 
         public void RebalanceAsync() {
             if (String.IsNullOrWhiteSpace(_memberId)) {
-                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Start rebalace at group '{2}'",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId));
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #1 Start rebalace at group '{2}'",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
             }
 
             //1. Group Coordinator
@@ -71,13 +69,13 @@ namespace Chuye.Kafka.Internal {
             //3. SyncGroup
             SyncGroupResponse syncGroupResponse;
             if (_memberId != joinGroupResponse.LeaderId) {
-                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Became follower at group '{2}', waiting for assingment",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId));
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Became follower at group '{2}', waiting for assingment",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
                 syncGroupResponse = SyncGroup(_groupId, _memberId, _generationId);
             }
             else {
-                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Became leader at group '{2}', assigning topic and partitions",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId));
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Became leader at group '{2}', assigning topic and partitions",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
                 var assignments = AssigningTopicPartitions(Topics);
                 syncGroupResponse = SyncGroup(_groupId, _memberId, _generationId, assignments);
             }
@@ -87,12 +85,14 @@ namespace Chuye.Kafka.Internal {
             }
 
             //4. Heartbeat
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #5 Member '{2}' heartbeat at group '{3}'",
+                DateTime.Now, Thread.CurrentThread.ManagedThreadId, _memberId, _groupId);
             _heartbeatTimer.Change(0L, Timeout.Infinite);
         }
 
         private void ShowTopicPartitionAssigned(SyncGroupPartitionAssignment assignment) {
-            Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Assined at group '{2}', got topic '{3}' and partition {4}",
-               DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, assignment.Topic, String.Join("|", assignment.Partitions.OrderBy(x => x))));
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', got topic '{3}' and partition {4}",
+               DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, assignment.Topic, String.Join("|", assignment.Partitions.OrderBy(x => x)));
         }
 
         private void EnsureCoordinateBrokerExsiting() {
@@ -101,8 +101,8 @@ namespace Chuye.Kafka.Internal {
             }
             if (Interlocked.CompareExchange(ref _coordinateBroker, null, null) == null) {
                 _coordinateBroker = GroupCoordinator(_groupId);
-                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Got coordinate broker {2} at group '{3}'",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinateBroker.ToUri().AbsoluteUri, _groupId));
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #2 Got coordinate broker {2} at group '{3}'",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinateBroker.ToUri().AbsoluteUri, _groupId);
             }
         }
 
@@ -221,6 +221,8 @@ namespace Chuye.Kafka.Internal {
             }
             var request = new LeaveGroupRequest(_groupId, _memberId);
             var response = (LeaveGroupResponse)_client.SubmitRequest(_coordinateBroker, request);
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #6 Member '{2}' leave group '{3}'",
+               DateTime.Now, Thread.CurrentThread.ManagedThreadId, _memberId, _groupId);
             _heartbeatTimer.Change(Timeout.Infinite, Timeout.Infinite);
             response.TryThrowFirstErrorOccured();
             return response;

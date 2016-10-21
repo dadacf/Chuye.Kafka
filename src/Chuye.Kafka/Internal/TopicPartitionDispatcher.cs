@@ -17,12 +17,6 @@ namespace Chuye.Kafka.Internal {
             _sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         }
 
-        public TopicPartition SelectSequentialPartition(String topic) {
-            Int32 sequence = Sequential(topic);
-            var topicPartitions = SelectPartitions(topic);
-            return topicPartitions[sequence % topicPartitions.Count];
-        }
-
         private Int32 Sequential(String topic) {
             var sequence = -1;
             _sync.EnterWriteLock();
@@ -34,6 +28,12 @@ namespace Chuye.Kafka.Internal {
                 _sync.ExitWriteLock();
             }
             return sequence;
+        }
+
+        public TopicPartition SelectPartition(String topic) {
+            Int32 sequence = Sequential(topic);
+            var topicPartitions = SelectPartitions(topic);
+            return topicPartitions[sequence % topicPartitions.Count];
         }
 
         public IReadOnlyList<TopicPartition> SelectPartitions(String topic) {

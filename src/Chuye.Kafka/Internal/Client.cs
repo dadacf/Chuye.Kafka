@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Chuye.Kafka.Protocol;
-using Chuye.Kafka.Protocol.Management;
 
 namespace Chuye.Kafka.Internal {
     public class Client {
@@ -16,15 +15,11 @@ namespace Chuye.Kafka.Internal {
         private readonly ExistingBrokerDispatcher _existingBrokerDispatcher;
         //todo: chicken-and-egg problem
         private /*readonly*/ TopicBrokerDispatcher _topicBrokerDispatcher;
-        private readonly Option _option;
+        private readonly ConnectionFactory _connectionFactory;
 
         public event EventHandler<RequestSendingEventArgs> RequestSending;
         public event EventHandler<ResponseReceivedEventArg> ResponseReceived;
-
-        internal Option Option {
-            get { return _option; }
-        }
-
+        
         internal ExistingBrokerDispatcher ExistingBrokerDispatcher {
             get { return _existingBrokerDispatcher; }
         }
@@ -34,11 +29,15 @@ namespace Chuye.Kafka.Internal {
         }
 
         public Client(Option option)
-            : this(option, new ExistingBrokerDispatcher(option.BrokerUris)) {
+            : this(option.GetSharedConnections(), option.BrokerUris.ToArray()) {
         }
 
-        internal Client(Option option, ExistingBrokerDispatcher existingBrokerDispatcher) {
-            _option = option;
+        internal Client(ConnectionFactory connectionFactory, IList<Uri> exitingBroker)
+            : this(connectionFactory, new ExistingBrokerDispatcher(exitingBroker)) {
+        }
+
+        internal Client(ConnectionFactory connectionFactory, ExistingBrokerDispatcher existingBrokerDispatcher) {
+            _connectionFactory = connectionFactory;
             _existingBrokerDispatcher = existingBrokerDispatcher;
             _topicBrokerDispatcher = new TopicBrokerDispatcher(this);
         }
@@ -65,13 +64,12 @@ namespace Chuye.Kafka.Internal {
         internal Response SubmitRequest(Uri uri, Request req) {
             var reqEvent = new RequestSendingEventArgs(uri, req);
             OnRequestSending(reqEvent);
-            Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Sending {2} to {3}",
-                DateTime.Now, Thread.CurrentThread.ManagedThreadId, reqEvent.Request.ApiKey, reqEvent.Uri.AbsoluteUri));
-            var connectionFactory = _option.OpenShared();
-            using (var connection = connectionFactory.Connect(reqEvent.Uri)) {
+            //Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Sending {2} to {3}",
+            //    DateTime.Now, Thread.CurrentThread.ManagedThreadId, reqEvent.Request.ApiKey, reqEvent.Uri.AbsoluteUri);
+            using (var connection = _connectionFactory.Connect(reqEvent.Uri)) {
                 var resp = connection.Submit(reqEvent.Request);
-                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Received {2} from {3}",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, resp.GetType().Name, reqEvent.Uri.AbsoluteUri));
+                //Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Received {2} from {3}",
+                //    DateTime.Now, Thread.CurrentThread.ManagedThreadId, resp.GetType().Name, reqEvent.Uri.AbsoluteUri);
                 var respEvent = new ResponseReceivedEventArg(resp);
                 OnResponseReceived(respEvent);
                 return respEvent.Response;

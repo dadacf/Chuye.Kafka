@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Internal {
     class ExistingBrokerDispatcher {
-        private readonly IReadOnlyList<Uri> _existingbrokerUris;
+        private readonly IList<Uri> _existingbrokerUris;
         private Int32 _sequence;
 
-        public ExistingBrokerDispatcher(IReadOnlyList<Uri> existingbrokerUris) {
+        public ExistingBrokerDispatcher(IList<Uri> existingbrokerUris) {
             _existingbrokerUris = existingbrokerUris;
             _sequence = 0;
         }
