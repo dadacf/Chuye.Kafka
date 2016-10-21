@@ -23,8 +23,7 @@ namespace Chuye.Kafka {
         public Consumer(Option option, String groupId) {
             _client = option.GetSharedClient();
             _groupId = groupId;
-            _partitionDispatcher = new TopicPartitionDispatcher(_client);
-            _client.ReplaceDispatcher(_partitionDispatcher);
+            _partitionDispatcher = new TopicPartitionDispatcher(_client.TopicBrokerDispatcher);
         }
 
         public IEnumerable<Message> Fetch(String topic) {

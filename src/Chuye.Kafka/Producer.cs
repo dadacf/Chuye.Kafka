@@ -17,8 +17,7 @@ namespace Chuye.Kafka {
 
         public Producer(Option option) {
             _client              = option.GetSharedClient();
-            _partitionDispatcher = new TopicPartitionDispatcher(_client);
-            _client.ReplaceDispatcher(_partitionDispatcher);
+            _partitionDispatcher = new TopicPartitionDispatcher(_client.TopicBrokerDispatcher);
         }
 
         public virtual Int64 Send(String topic, params String[] messages) {

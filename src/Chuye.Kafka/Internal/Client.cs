@@ -13,8 +13,7 @@ namespace Chuye.Kafka.Internal {
         private const String TermPattern = "[a-zA-Z][a-zA-Z0-9_-]*";
         private const String __consumer_offsets = "__consumer_offsets";
         private readonly ExistingBrokerDispatcher _existingBrokerDispatcher;
-        //todo: chicken-and-egg problem
-        private /*readonly*/ TopicBrokerDispatcher _topicBrokerDispatcher;
+        private readonly TopicBrokerDispatcher _topicBrokerDispatcher;
         private readonly ConnectionFactory _connectionFactory;
 
         public event EventHandler<RequestSendingEventArgs> RequestSending;
@@ -40,11 +39,6 @@ namespace Chuye.Kafka.Internal {
             _connectionFactory = connectionFactory;
             _existingBrokerDispatcher = existingBrokerDispatcher;
             _topicBrokerDispatcher = new TopicBrokerDispatcher(this);
-        }
-
-        //todo: chicken-and-egg problem
-        internal void ReplaceDispatcher(TopicBrokerDispatcher topicBrokerDispatcher) {
-            _topicBrokerDispatcher = topicBrokerDispatcher;
         }
 
         private void EnsureLegalTopicSpelling(String topic) {

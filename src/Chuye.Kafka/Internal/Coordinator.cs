@@ -29,8 +29,7 @@ namespace Chuye.Kafka.Internal {
             _groupId             = groupId;
             _memberId            = String.Empty;
             _heartbeatTimer      = new Timer(HeartbeatCallback);
-            _partitionDispatcher = new TopicPartitionDispatcher(_client);
-            _client.ReplaceDispatcher(_partitionDispatcher);
+            _partitionDispatcher = new TopicPartitionDispatcher(_client.TopicBrokerDispatcher);
         }
 
         private void HeartbeatCallback(Object state) {
