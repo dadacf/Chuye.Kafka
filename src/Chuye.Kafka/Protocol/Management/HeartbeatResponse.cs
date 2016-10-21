@@ -25,5 +25,11 @@ namespace Chuye.Kafka.Protocol.Management {
         protected override void SerializeContent(KafkaWriter writer) {
             writer.Write((Int16)ErrorCode);
         }
+
+        public override void TryThrowFirstErrorOccured() {
+            if(ErrorCode != ErrorCode.NoError) {
+                throw new ProtocolException(ErrorCode);
+            }
+        }
     }
 }

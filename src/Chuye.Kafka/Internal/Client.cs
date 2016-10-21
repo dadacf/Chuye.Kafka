@@ -17,8 +17,9 @@ namespace Chuye.Kafka.Internal {
         //todo: chicken-and-egg problem
         private /*readonly*/ TopicBrokerDispatcher _topicBrokerDispatcher;
         private readonly Option _option;
-        
-        public event EventHandler<RequestSubmittingEventArgs> RequestSubmitting;
+
+        public event EventHandler<RequestSendingEventArgs> RequestSending;
+        public event EventHandler<ResponseReceivedEventArg> ResponseReceived;
 
         internal Option Option {
             get { return _option; }
@@ -57,23 +58,32 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        internal Response SubmitRequest(Broker broker, Request request) {
-            return SubmitRequest(broker.ToUri(), request);
+        internal Response SubmitRequest(Broker broker, Request req) {
+            return SubmitRequest(broker.ToUri(), req);
         }
 
-        internal Response SubmitRequest(Uri uri, Request request) {
-            var @event = new RequestSubmittingEventArgs(uri, request);
-            OnRequestSubmitting(@event);
-            Debug.WriteLine(String.Format("[{0:d2}] {1:HH:mm:ss.fff} Submitting {2} {3}",
-                Thread.CurrentThread.ManagedThreadId, DateTime.Now, @event.Uri.AbsoluteUri, @event.Request));
+        internal Response SubmitRequest(Uri uri, Request req) {
+            var reqEvent = new RequestSendingEventArgs(uri, req);
+            OnRequestSending(reqEvent);
+            Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Sending {2} to {3}",
+                DateTime.Now, Thread.CurrentThread.ManagedThreadId, reqEvent.Request.ApiKey, reqEvent.Uri.AbsoluteUri));
             var connectionFactory = _option.OpenShared();
-            using (var connection = connectionFactory.Connect(@event.Uri)) {
-                return connection.Submit(@event.Request);
+            using (var connection = connectionFactory.Connect(reqEvent.Uri)) {
+                var resp = connection.Submit(reqEvent.Request);
+                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Received {2} from {3}",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, resp.GetType().Name, reqEvent.Uri.AbsoluteUri));
+                var respEvent = new ResponseReceivedEventArg(resp);
+                OnResponseReceived(respEvent);
+                return respEvent.Response;
             }
         }
 
-        protected virtual void OnRequestSubmitting(RequestSubmittingEventArgs @event) {
-            RequestSubmitting?.Invoke(this, @event);
+        protected virtual void OnRequestSending(RequestSendingEventArgs @event) {
+            RequestSending?.Invoke(this, @event);
+        }
+
+        protected virtual void OnResponseReceived(ResponseReceivedEventArg @event) {
+            ResponseReceived?.Invoke(this, @event);
         }
 
         public MetadataResponse Metadata(params String[] topics) {

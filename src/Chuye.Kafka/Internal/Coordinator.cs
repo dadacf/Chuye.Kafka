@@ -20,6 +20,8 @@ namespace Chuye.Kafka.Internal {
         private Timer _heartbeatTimer;
         private Int32? _sessionTimeout;
 
+        public String[] Topics { get; set; }
+
         public Coordinator(Option option, String groupId)
             : this(new Client(option), groupId) {
         }
@@ -29,47 +31,68 @@ namespace Chuye.Kafka.Internal {
             _groupId = groupId;
             _partitionDispatcher = new TopicPartitionDispatcher(_client);
             _client.ReplaceDispatcher(_partitionDispatcher);
+            _memberId = String.Empty;
             _heartbeatTimer = new Timer(HeartbeatCallback);
         }
 
         private void HeartbeatCallback(Object state) {
             var heartbeatResponse = Heartbeat(_groupId, _memberId, _generationId);
-            var sessionTimeoutStr = _client.Option.Property.Get("JoinGroupRequest.SessionTimeout");
-            Int32 sessionTimeout;
-            if (!Int32.TryParse(sessionTimeoutStr, out sessionTimeout)) {
-                sessionTimeout = 5000;
+            //heartbeatResponse.TryThrowFirstErrorOccured();
+            if (heartbeatResponse.ErrorCode == ErrorCode.RebalanceInProgressCode) {
+                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Start rebalace at group '{2}' for '{3}'",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, heartbeatResponse.ErrorCode));
+                RebalanceAsync();
             }
-            _sessionTimeout = sessionTimeout;
-            _heartbeatTimer.Change(sessionTimeout, Timeout.Infinite);
+            else {
+                var sessionTimeoutStr = _client.Option.Property.Get("JoinGroupRequest.SessionTimeout");
+                Int32 sessionTimeout;
+                if (Int32.TryParse(sessionTimeoutStr, out sessionTimeout)) {
+                    _sessionTimeout = sessionTimeout;
+                }
+                _heartbeatTimer.Change(_sessionTimeout.HasValue ? _sessionTimeout.Value : 5000, Timeout.Infinite);
+            }
         }
 
-        public Response Initialize(params String[] topics) {
+        public void RebalanceAsync() {
+            if (String.IsNullOrWhiteSpace(_memberId)) {
+                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Start rebalace at group '{2}'",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId));
+            }
+
             //1. Group Coordinator
             EnsureCoordinateBrokerExsiting();
 
             //2. Join Group
-            var joinGroupResponse = JoinGroup(_groupId, String.Empty, topics);
-            _generationId         = joinGroupResponse.GenerationId;
-            _memberId             = joinGroupResponse.MemberId;
-            _members              = joinGroupResponse.Members;
+            var joinGroupResponse = JoinGroup(_groupId, _memberId, Topics);
+            _generationId = joinGroupResponse.GenerationId;
+            _memberId     = joinGroupResponse.MemberId;
+            _members      = joinGroupResponse.Members;
 
             //3. SyncGroup
             SyncGroupResponse syncGroupResponse;
             if (_memberId != joinGroupResponse.LeaderId) {
-                Debug.WriteLine(String.Format("[{0:d2}] {1:HH:mm:ss.fff} Became follower of {2}, waiting for assingment",
-                    Thread.CurrentThread.ManagedThreadId, DateTime.Now, _groupId));
+                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Became follower at group '{2}', waiting for assingment",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId));
                 syncGroupResponse = SyncGroup(_groupId, _memberId, _generationId);
             }
             else {
-                Debug.WriteLine(String.Format("[{0:d2}] {1:HH:mm:ss.fff}  Became leader of {2}, assigning topic and partitions",
-                    Thread.CurrentThread.ManagedThreadId, DateTime.Now, _groupId));
-                var assignments = AssigningTopicPartitions(topics);
+                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Became leader at group '{2}', assigning topic and partitions",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId));
+                var assignments = AssigningTopicPartitions(Topics);
                 syncGroupResponse = SyncGroup(_groupId, _memberId, _generationId, assignments);
+            }
+
+            foreach (var partitionAssignment in syncGroupResponse.MemberAssignment.PartitionAssignments) {
+                ShowTopicPartitionAssigned(partitionAssignment);
             }
 
             //4. Heartbeat
             _heartbeatTimer.Change(0L, Timeout.Infinite);
-            return syncGroupResponse;
+        }
+
+        private void ShowTopicPartitionAssigned(SyncGroupPartitionAssignment assignment) {
+            Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Assined at group '{2}', got topic '{3}' and partition {4}",
+               DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, assignment.Topic, String.Join("|", assignment.Partitions.OrderBy(x => x))));
         }
 
         private void EnsureCoordinateBrokerExsiting() {
@@ -78,8 +101,8 @@ namespace Chuye.Kafka.Internal {
             }
             if (Interlocked.CompareExchange(ref _coordinateBroker, null, null) == null) {
                 _coordinateBroker = GroupCoordinator(_groupId);
-                Debug.WriteLine(String.Format("[{0:d2}] {1:HH:mm:ss.fff} Got coordinate broker {2}",
-                    Thread.CurrentThread.ManagedThreadId, DateTime.Now, _coordinateBroker.ToUri().AbsoluteUri));
+                Debug.WriteLine(String.Format("{0:HH:mm:ss.fff} [{1:d2}] Got coordinate broker {2} at group '{3}'",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinateBroker.ToUri().AbsoluteUri, _groupId));
             }
         }
 
@@ -135,9 +158,9 @@ namespace Chuye.Kafka.Internal {
         }
 
         public ListGroupsResponse ListGroups() {
-            var request = new ListGroupsRequest();
             //var brokerUri = _client.ExistingBrokerDispatcher.SequentialSelect();
             EnsureCoordinateBrokerExsiting();
+            var request = new ListGroupsRequest();
             var response = (ListGroupsResponse)_client.SubmitRequest(_coordinateBroker, request);
             response.TryThrowFirstErrorOccured();
             return response;
@@ -188,13 +211,17 @@ namespace Chuye.Kafka.Internal {
         public HeartbeatResponse Heartbeat(String groupId, String memberId, Int32 generationId) {
             var request = new HeartbeatRequest(groupId, generationId, memberId);
             var response = (HeartbeatResponse)_client.SubmitRequest(_coordinateBroker, request);
-            response.TryThrowFirstErrorOccured();
+            //response.TryThrowFirstErrorOccured();
             return response;
         }
-
-        public LeaveGroupResponse LeaveGroup(String groupId, String memberId) {
-            var request = new LeaveGroupRequest(groupId, memberId);
+        
+        public LeaveGroupResponse LeaveGroup() {
+            if (String.IsNullOrWhiteSpace(_memberId)) {
+                throw new InvalidOperationException();
+            }
+            var request = new LeaveGroupRequest(_groupId, _memberId);
             var response = (LeaveGroupResponse)_client.SubmitRequest(_coordinateBroker, request);
+            _heartbeatTimer.Change(Timeout.Infinite, Timeout.Infinite);
             response.TryThrowFirstErrorOccured();
             return response;
         }
