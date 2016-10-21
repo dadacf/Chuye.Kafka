@@ -29,7 +29,7 @@ namespace Chuye.Kafka.Protocol.Management {
             : base(ApiKey.JoinGroupRequest) {
         }
 
-        public JoinGroupRequest(String groupId, String memberId, String[] topics, Int32 sessionTimeout = 5000)
+        public JoinGroupRequest(String groupId, String memberId, String[] topics, Int32 sessionTimeout = 10000)
             : base(ApiKey.JoinGroupRequest) {
             GroupId        = groupId;
             MemberId       = memberId;

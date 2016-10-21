@@ -18,6 +18,7 @@ namespace Chuye.Kafka.Internal {
         private String _memberId;
         private JoinGroupResponseMember[] _members;
         private Timer _heartbeatTimer;
+        private Int32? _sessionTimeout;
 
         public Coordinator(Option option, String groupId)
             : this(new Client(option), groupId) {
@@ -33,7 +34,13 @@ namespace Chuye.Kafka.Internal {
 
         private void HeartbeatCallback(Object state) {
             var heartbeatResponse = Heartbeat(_groupId, _memberId, _generationId);
-            _heartbeatTimer.Change()
+            var sessionTimeoutStr = _client.Option.Property.Get("JoinGroupRequest.SessionTimeout");
+            Int32 sessionTimeout;
+            if (!Int32.TryParse(sessionTimeoutStr, out sessionTimeout)) {
+                sessionTimeout = 5000;
+            }
+            _sessionTimeout = sessionTimeout;
+            _heartbeatTimer.Change(sessionTimeout, Timeout.Infinite);
         }
 
         public Response Initialize(params String[] topics) {
@@ -42,9 +49,9 @@ namespace Chuye.Kafka.Internal {
 
             //2. Join Group
             var joinGroupResponse = JoinGroup(_groupId, String.Empty, topics);
-            _generationId = joinGroupResponse.GenerationId;
-            _memberId = joinGroupResponse.MemberId;
-            _members = joinGroupResponse.Members;
+            _generationId         = joinGroupResponse.GenerationId;
+            _memberId             = joinGroupResponse.MemberId;
+            _members              = joinGroupResponse.Members;
 
             //3. SyncGroup
             SyncGroupResponse syncGroupResponse;
@@ -62,6 +69,7 @@ namespace Chuye.Kafka.Internal {
 
             //4. Heartbeat
             _heartbeatTimer.Change(0L, Timeout.Infinite);
+            return syncGroupResponse;
         }
 
         private void EnsureCoordinateBrokerExsiting() {
@@ -128,16 +136,18 @@ namespace Chuye.Kafka.Internal {
 
         public ListGroupsResponse ListGroups() {
             var request = new ListGroupsRequest();
-            var brokerUri = _client.ExistingBrokerDispatcher.SequentialSelect();
-            var response = (ListGroupsResponse)_client.SubmitRequest(brokerUri, request);
+            //var brokerUri = _client.ExistingBrokerDispatcher.SequentialSelect();
+            EnsureCoordinateBrokerExsiting();
+            var response = (ListGroupsResponse)_client.SubmitRequest(_coordinateBroker, request);
             response.TryThrowFirstErrorOccured();
             return response;
         }
 
         public DescribeGroupsResponse DescribeGroups(IList<String> groupIds) {
+            //var brokerUri = _client.ExistingBrokerDispatcher.SequentialSelect();
+            EnsureCoordinateBrokerExsiting();
             var request = new DescribeGroupsRequest(groupIds);
-            var brokerUri = _client.ExistingBrokerDispatcher.SequentialSelect();
-            var response = (DescribeGroupsResponse)_client.SubmitRequest(brokerUri, request);
+            var response = (DescribeGroupsResponse)_client.SubmitRequest(_coordinateBroker, request);
             response.TryThrowFirstErrorOccured();
             return response;
         }
@@ -151,8 +161,9 @@ namespace Chuye.Kafka.Internal {
         }
 
         public JoinGroupResponse JoinGroup(String groupId, String memberId, IList<String> topics) {
-            var sessionTimeout = _client.Option.Property.Get("JoinGroupRequest.SessionTimeout");
-            var request = new JoinGroupRequest(groupId, memberId, topics.ToArray(), sessionTimeout);
+            var request = _sessionTimeout.HasValue
+                ? new JoinGroupRequest(groupId, memberId, topics.ToArray(), _sessionTimeout.Value)
+                : new JoinGroupRequest(groupId, memberId, topics.ToArray());
             var response = (JoinGroupResponse)_client.SubmitRequest(_coordinateBroker.ToUri(), request);
             response.TryThrowFirstErrorOccured();
             return response;

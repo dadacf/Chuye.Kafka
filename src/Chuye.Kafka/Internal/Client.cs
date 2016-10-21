@@ -66,13 +66,13 @@ namespace Chuye.Kafka.Internal {
             OnRequestSubmitting(@event);
             Debug.WriteLine(String.Format("[{0:d2}] {1:HH:mm:ss.fff} Submitting {2} {3}",
                 Thread.CurrentThread.ManagedThreadId, DateTime.Now, @event.Uri.AbsoluteUri, @event.Request));
-            var connectionFactory = _option.GetConnectionFactory();
+            var connectionFactory = _option.OpenShared();
             using (var connection = connectionFactory.Connect(@event.Uri)) {
                 return connection.Submit(@event.Request);
             }
         }
 
-        private void OnRequestSubmitting(RequestSubmittingEventArgs @event) {
+        protected virtual void OnRequestSubmitting(RequestSubmittingEventArgs @event) {
             RequestSubmitting?.Invoke(this, @event);
         }
 
@@ -94,7 +94,7 @@ namespace Chuye.Kafka.Internal {
 
         public Int64 Produce(String topic, Int32 partition, IList<Message> messages) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new ProduceRequest(topic, partition, messages);
             var response = (ProduceResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
@@ -107,7 +107,7 @@ namespace Chuye.Kafka.Internal {
 
         public IEnumerable<OffsetMessage> Fetch(String topic, Int32 partition, Int64 fetchOffset) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new FetchRequest(topic, partition, fetchOffset);
             var response = (FetchResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
@@ -119,7 +119,7 @@ namespace Chuye.Kafka.Internal {
 
         public Int64 Offset(String topic, Int32 partition, OffsetOption option) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new OffsetRequest(topic, new[] { partition }, option);
             var response = (OffsetResponse)SubmitRequest(broker, request);
             var errors = response.TopicPartitions
@@ -148,7 +148,7 @@ namespace Chuye.Kafka.Internal {
 
         public Int64 OffsetFetch(String topic, Int32 partition, String groupId) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new OffsetFetchRequest(topic, new[] { partition }, groupId);
             var response = (OffsetFetchResponse)SubmitRequest(broker, request);
             var errors = response.TopicPartitions
@@ -177,7 +177,7 @@ namespace Chuye.Kafka.Internal {
 
         public ErrorCode OffsetCommit(String topic, Int32 partition, String groupId, Int64 offset) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = OffsetCommitRequest.CreateV0(topic, partition, groupId, offset);
             var response = (OffsetCommitResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();

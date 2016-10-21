@@ -16,13 +16,16 @@ namespace Chuye.Kafka {
             get { return _brokerUris; }
         }
 
-        public NameValueCollection Property { get; }
+        public NameValueCollection Property {
+            get { return _property; }
+        }
 
         public Option(params Uri[] brokerUris) {
             _brokerUris = brokerUris;
+            _property = new NameValueCollection();
         }
 
-        public ConnectionFactory GetConnectionFactory() {
+        public ConnectionFactory OpenShared() {
             if (_factory != null) {
                 return _factory;
             }

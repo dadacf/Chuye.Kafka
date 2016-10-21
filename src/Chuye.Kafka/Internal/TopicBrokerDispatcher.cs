@@ -25,6 +25,13 @@ namespace Chuye.Kafka.Internal {
             get { return _client; }
         }
 
+        public TopicBrokerDispatcher(Client client) {
+            _client  = client;
+            _sync    = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+            _topics  = new List<TopicPartition>();
+            _brokers = new List<Broker>();
+        }
+
         private Broker SelectCached(String topic, Int32 partition) {
             var targetTopic = _topics.Find(x => x.Name == topic && x.Partition == partition);
             if (targetTopic == null) {
@@ -37,14 +44,7 @@ namespace Chuye.Kafka.Internal {
             return broker;
         }
 
-        public TopicBrokerDispatcher(Client client) {
-            _client = client;
-            _sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-            _topics = new List<TopicPartition>();
-            _brokers = new List<Broker>();
-        }
-
-        public Broker Select(String topic, Int32 partition) {
+        public Broker SelectBroker(String topic, Int32 partition) {
             _sync.EnterUpgradeableReadLock();
             try {
                 var broker = SelectCached(topic, partition);
