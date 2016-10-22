@@ -564,7 +564,7 @@ namespace Chuye.Kafka.Tests.Protocol {
             var messageSetArray = new MessageSetDetail[count];
             for (int i = 0; i < messageSetArray.Length; i++) {
                 var messageSet = messageSetArray[i] = new MessageSetDetail();
-                messageSet.Message = new Kafka.Protocol.MessageSetItem();
+                messageSet.Message = new MessageSetItem();
                 if (messages[i].Key != null) {
                     messageSet.Message.Key = Encoding.UTF8.GetBytes(messages[i].Key);
                 }

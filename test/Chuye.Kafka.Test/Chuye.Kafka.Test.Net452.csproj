@@ -66,23 +66,23 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConnectionTest.cs" />
+    <Compile Include="Internal\SocketPoolTest.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Protocol\RequestSerializeTest.cs" />
     <Compile Include="Protocol\ResponseSerializeTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Chuye.Kafka\Chuye.Kafka.Net452.csproj">
-      <Project>{898d0377-63d3-4638-9c72-28e1f9a051b6}</Project>
-      <Name>Chuye.Kafka.Net452</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Chuye.Kafka\Chuye.Kafka.Net452.csproj">
+      <Project>{898d0377-63d3-4638-9c72-28e1f9a051b6}</Project>
+      <Name>Chuye.Kafka.Net452</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

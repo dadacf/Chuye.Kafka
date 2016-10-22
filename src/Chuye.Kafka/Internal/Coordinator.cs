@@ -53,7 +53,7 @@ namespace Chuye.Kafka.Internal {
             var heartbeatResponse = Heartbeat(_groupId, _memberId, _generationId);
             //heartbeatResponse.TryThrowFirstErrorOccured();
             if (heartbeatResponse.ErrorCode == ErrorCode.RebalanceInProgressCode) {
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #1 Start rebalace at group '{2}' for '{3}'",
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #6 Need rebalace at group '{2}' for '{3}'",
                     DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, heartbeatResponse.ErrorCode);
                 RebalanceAsync();
             }
@@ -75,12 +75,9 @@ namespace Chuye.Kafka.Internal {
         }
 
         public void RebalanceAsync() {
-            if (String.IsNullOrWhiteSpace(_memberId)) {
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #1 Start rebalace at group '{2}'",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
-            }
-
             //1. Group Coordinator
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #1 Rebalace start at group '{2}'",
+                DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
             OnStateChange(CoordinatorState.Unkown);
             EnsureCoordinateBrokerExsiting();
 
@@ -92,7 +89,7 @@ namespace Chuye.Kafka.Internal {
             OnStateChange(CoordinatorState.Stable);
 
             //4. Heartbeat
-            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #5 Member '{2}' heartbeat at group '{3}'",
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #5 Heartbeat of member '{2}' at group '{3}'",
                 DateTime.Now, Thread.CurrentThread.ManagedThreadId, _memberId, _groupId);
             _heartbeatTimer.Change(0L, Timeout.Infinite);
         }
@@ -112,17 +109,13 @@ namespace Chuye.Kafka.Internal {
 
                 var isLeader = _memberId != joinGroupResponse.LeaderId;
                 if (isLeader) {
-                    if (retryUsed == 1) {
-                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Became follower at group '{2}', waiting for assingment",
-                            DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
-                    }
+                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Join group '{2}', waiting for assingment as follower",
+                        DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
                     resp = SyncGroup(_groupId, _memberId, _generationId);
                 }
                 else {
-                    if (retryUsed == 1) {
-                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Became leader at group '{2}', assigning topic and partitions",
-                            DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
-                    }
+                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Join group '{2}', assigning topic and partitions as leader",
+                        DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
                     var assignments = AssigningTopicPartitions(Topics);
                     resp = SyncGroup(_groupId, _memberId, _generationId, assignments);
                 }
@@ -147,13 +140,13 @@ namespace Chuye.Kafka.Internal {
 
             if (assignment.PartitionAssignments != null && assignment.PartitionAssignments.Count > 0) {
                 foreach (var partitionAssignment in assignment.PartitionAssignments) {
-                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', got topic '{3}'({4})",
+                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', assined topic '{3}'({4})",
                         DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
                     _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
                 }
             }
             else {
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', got nothing",
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', assined nothing",
                     DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
                 throw new InvalidOperationException("All partition has been assigned");
             }
@@ -165,7 +158,7 @@ namespace Chuye.Kafka.Internal {
             }
             if (Interlocked.CompareExchange(ref _coordinateBroker, null, null) == null) {
                 _coordinateBroker = GroupCoordinator(_groupId);
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #2 Got coordinate broker {2} at group '{3}'",
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #2 Group coordinate got broker {2} at group '{3}'",
                     DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinateBroker.ToUri().AbsoluteUri, _groupId);
             }
         }
