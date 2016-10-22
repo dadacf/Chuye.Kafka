@@ -84,32 +84,11 @@ namespace Chuye.Kafka.Internal {
             OnStateChange(CoordinatorState.Unkown);
             EnsureCoordinateBrokerExsiting();
 
-            //2. Join Group
-            OnStateChange(CoordinatorState.Joining);
-            var joinGroupResponse = JoinGroup(_groupId, _memberId, Topics);
-            joinGroupResponse.TryThrowFirstErrorOccured();
-
-            OnStateChange(CoordinatorState.AwaitingSync);
-            _generationId = joinGroupResponse.GenerationId;
-            _memberId     = joinGroupResponse.MemberId;
-            _members      = joinGroupResponse.Members;
-
-            //3. SyncGroup
-            SyncGroupResponse syncGroupResponse;
-            if (_memberId != joinGroupResponse.LeaderId) {
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Became follower at group '{2}', waiting for assingment",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
-                syncGroupResponse = SyncGroup(_groupId, _memberId, _generationId);
-            }
-            else {
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Became leader at group '{2}', assigning topic and partitions",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
-                var assignments = AssigningTopicPartitions(Topics);
-                syncGroupResponse = SyncGroup(_groupId, _memberId, _generationId, assignments);
-            }
-
+            //2 & 3 Join Group & SyncGroup
+            //todo: magic number
+            var syncGroupResponse = TryJoinAndSyncGroup(20, 100);
             syncGroupResponse.TryThrowFirstErrorOccured();
-            ShowTopicPartitionAssigned(syncGroupResponse.MemberAssignment);
+            ResolveTopicPartitionAssigned(syncGroupResponse.MemberAssignment);
             OnStateChange(CoordinatorState.Stable);
 
             //4. Heartbeat
@@ -118,7 +97,47 @@ namespace Chuye.Kafka.Internal {
             _heartbeatTimer.Change(0L, Timeout.Infinite);
         }
 
-        private void ShowTopicPartitionAssigned(SyncGroupMemberAssignment assignment) {
+        private SyncGroupResponse TryJoinAndSyncGroup(Int32 retryCount, Int32 retryTimtout) {
+            SyncGroupResponse resp = null;
+            var retryUsed = 0;
+            while (resp == null && ++retryUsed < retryCount) {
+                OnStateChange(CoordinatorState.Joining);
+                var joinGroupResponse = JoinGroup(_groupId, _memberId, Topics);
+                joinGroupResponse.TryThrowFirstErrorOccured();
+
+                OnStateChange(CoordinatorState.AwaitingSync);
+                _generationId = joinGroupResponse.GenerationId;
+                _memberId     = joinGroupResponse.MemberId;
+                _members      = joinGroupResponse.Members;
+
+                var isLeader = _memberId != joinGroupResponse.LeaderId;
+                if (isLeader) {
+                    if (retryUsed == 1) {
+                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Became follower at group '{2}', waiting for assingment",
+                            DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
+                    }
+                    resp = SyncGroup(_groupId, _memberId, _generationId);
+                }
+                else {
+                    if (retryUsed == 1) {
+                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Became leader at group '{2}', assigning topic and partitions",
+                            DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
+                    }
+                    var assignments = AssigningTopicPartitions(Topics);
+                    resp = SyncGroup(_groupId, _memberId, _generationId, assignments);
+                }
+                if (resp.ErrorCode == ErrorCode.RebalanceInProgressCode) {
+                    resp = null;
+                    Thread.Sleep(retryTimtout);
+                }
+            }
+            if (resp == null) {
+                throw new ProtocolException(ErrorCode.RebalanceInProgressCode);
+            }
+            return resp;
+        }
+
+        private void ResolveTopicPartitionAssigned(SyncGroupMemberAssignment assignment) {
             if (_partitionAssignments == null) {
                 _partitionAssignments = new Dictionary<String, Int32[]>();
             }
@@ -126,10 +145,17 @@ namespace Chuye.Kafka.Internal {
                 _partitionAssignments.Clear();
             }
 
-            foreach (var partitionAssignment in assignment.PartitionAssignments) {
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', got topic '{3}' and partition {4}",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
-                _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
+            if (assignment.PartitionAssignments != null && assignment.PartitionAssignments.Count > 0) {
+                foreach (var partitionAssignment in assignment.PartitionAssignments) {
+                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', got topic '{3}'({4})",
+                        DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
+                    _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
+                }
+            }
+            else {
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', got nothing",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
+                throw new InvalidOperationException("All partition has been assigned");
             }
         }
 
@@ -234,7 +260,7 @@ namespace Chuye.Kafka.Internal {
             var request = new SyncGroupRequest(groupId, generationId, memberId);
             request.GroupAssignments = new SyncGroupGroupAssignment[0];
             var response = (SyncGroupResponse)_client.SubmitRequest(_coordinateBroker, request);
-            response.TryThrowFirstErrorOccured();
+            //response.TryThrowFirstErrorOccured();
             return response;
         }
 
@@ -242,7 +268,7 @@ namespace Chuye.Kafka.Internal {
             var request = new SyncGroupRequest(groupId, generationId, memberId);
             request.GroupAssignments = assignments;
             var response = (SyncGroupResponse)_client.SubmitRequest(_coordinateBroker, request);
-            response.TryThrowFirstErrorOccured();
+            //response.TryThrowFirstErrorOccured();
             return response;
         }
 
@@ -252,7 +278,7 @@ namespace Chuye.Kafka.Internal {
             //response.TryThrowFirstErrorOccured();
             return response;
         }
-        
+
         public LeaveGroupResponse LeaveGroup() {
             if (String.IsNullOrWhiteSpace(_memberId)) {
                 throw new InvalidOperationException();

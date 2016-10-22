@@ -21,11 +21,11 @@ namespace Chuye.Kafka.Test {
         }
 
         static void DeserializeFrom() {
-            var bf = "[00 00 00 19 00 00 00 01 00 00 00 00 00 01 00 09 75 62 75 6E 74 75 2D 31 36 00 00 23 85 ]"
+            var bf2 = "[00 00 00 0A 00 00 00 06 00 1B 00 00 00 00 ]"
                 .Split(new[] { '[', ' ', ']' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => Byte.Parse(x, System.Globalization.NumberStyles.HexNumber))
+                .Select(x => Byte.Parse(x, NumberStyles.HexNumber))
                 .ToArray();
-            Response.DeserializeFrom(new MemoryStream(bf), ApiKey.GroupCoordinatorRequest);
+            var resp = Response.DeserializeFrom(new MemoryStream(bf2), ApiKey.SyncGroupRequest);
         }
 
         static void SendRequest() {

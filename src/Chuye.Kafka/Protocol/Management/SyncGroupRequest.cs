@@ -91,7 +91,7 @@ namespace Chuye.Kafka.Protocol.Management {
             //UserData = reader.ReadBytes();
 
             var memberAssignment = reader.ReadBytes();
-            if (memberAssignment == null) {
+            if (memberAssignment == null || memberAssignment.Length == 0) {
                 return;
             }
 
