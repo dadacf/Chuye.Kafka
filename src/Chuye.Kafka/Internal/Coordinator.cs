@@ -169,7 +169,8 @@ namespace Chuye.Kafka.Internal {
                     //p: [0,1,2,3], c: [0,1]
                     //result: p0 -> c0, p1 -> c1, p2 -> c0, p3 -> c1
                     //equal: c0 -> [p0,p2], c1 -> [p1, p3]
-                    //分区数量不能被消费者整除时，靠后的消息者分配不到分区，此情况被 topic 循环放大
+                    //> 分区数量不能被消费者整除时，靠后的消息者分配不到分区，此情况被 topic 循环放大； 可以通过 consumer 数组乱序改进
+                    //> 对于 "重新负载时，原有分配最小变动"的需求，初步想法是在 MemberId 上做文章，使特定 MemberId 优先命中特定的分区索引
                     var partitionDispatched = partitions.Where((partition, index) => index % consumers.Length == i);
 
                     yield return new SyncGroupGroupAssignment {
