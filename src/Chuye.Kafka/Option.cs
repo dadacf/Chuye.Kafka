@@ -59,7 +59,7 @@ namespace Chuye.Kafka {
                 Interlocked.CompareExchange(ref _coordinatorAgent, new CoordinatorAgent(this), null);
             }
             //同 GetSharedConnections()
-            return _coordinatorAgent.SelectSpecified(groupId);
+            return _coordinatorAgent.SelectSpecified(groupId);            
         }
 
         public void Dispose() {

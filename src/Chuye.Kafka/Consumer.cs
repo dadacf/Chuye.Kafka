@@ -38,22 +38,23 @@ namespace Chuye.Kafka {
             _client                    = option.GetSharedClient();
             _groupId                   = groupId;
             _topic                     = topic;
-            _coordinator               = option.GetSharedCoordinator(groupId);
+            //_coordinator               = option.GetSharedCoordinator(groupId);
+            _coordinator = new Coordinator(option, groupId);
             _coordinator.StateChanged += Coordinator_StateChanged;
             _partitionDispatcher       = new KnownPartitionDispatcher();
         }
 
         public void Initialize() {
-            var hash = new HashSet<String>(_coordinator.Topics ?? Enumerable.Empty<String>());
-            if (!hash.Contains(_topic)) {
-                hash.Add(_topic);
-                _coordinator.Topics = hash.ToArray();
+            //var hash = new HashSet<String>(_coordinator.Topics ?? Enumerable.Empty<String>());
+            //if (!hash.Contains(_topic)) {
+            //    hash.Add(_topic);
+            _coordinator.Topics = new[] { _topic };
                 _coordinator.RebalanceAsync();
                 WaitForRebalace(20, 100);
-            }
+            //}
         }
 
-        private void Coordinator_StateChanged(object sender, CoordinatorStateChangedEventArgs e) {
+        private void Coordinator_StateChanged(Object sender, CoordinatorStateChangedEventArgs e) {
             if (e.State == CoordinatorState.Stable) {
                 _partitionAssigned = _coordinator.GetPartitionAssigned(_topic);
                 _partitionDispatcher.ChangeKnown(_partitionAssigned);
