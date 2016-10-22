@@ -17,18 +17,17 @@ namespace Chuye.Kafka.Internal {
         }
 
         public void ChangeKnown(Int32[] partitions) {
-            if (partitions == null || partitions.Length == 0) {
-                throw new ArgumentOutOfRangeException("partitions");
-            }
             _paritions = partitions;
             _sequence = 0;
         }
 
         public Int32 SelectParition() {
-            if (_paritions.Length == 0) {
+            if (_paritions == null || _paritions.Length == 0) {
+                throw new InvalidOperationException("Has no partition to select");
+            }
+            if (_paritions.Length == 1) {
                 return _paritions[0];
             }
-
             return _paritions[_sequence++ % _paritions.Length];
         }
     }

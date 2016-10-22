@@ -26,7 +26,7 @@ namespace Chuye.Kafka.Test.Internal {
             var socket = sockets.AcquireItem();
 
             sockets.ReleaseAll();
-            Assert.True(sockets.MarkAsReleased);
+            Assert.True(sockets.IsDisposed);
 
             socket.Dispose();
             Assert.False(socket.Connected);
