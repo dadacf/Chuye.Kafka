@@ -6,17 +6,17 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Internal {
-    class SocketPool : ObjectPool<Socket> {
+    class SocketPool : ObjectPool<Socket>, IDisposable {
         private readonly Uri _uri;
-        private Boolean _markAsReleased;
+        private Boolean _isDisposed;
 
-        public Boolean MarkAsReleased {
-            get { return _markAsReleased; }
+        public Boolean IsDisposed {
+            get { return _isDisposed; }
         }
 
         public SocketPool(Uri uri) {
             _uri = uri;
-            _markAsReleased = false;
+            _isDisposed = false;
         }
 
         protected override Socket Constructing() {
@@ -26,7 +26,7 @@ namespace Chuye.Kafka.Internal {
         }
 
         public override Socket AcquireItem() {
-            if (_markAsReleased) {
+            if (_isDisposed) {
                 throw new InvalidOperationException("Object has marked released");
             }
 
@@ -49,8 +49,12 @@ namespace Chuye.Kafka.Internal {
         }
 
         public override void ReleaseAll() {
-            _markAsReleased = true;
+            _isDisposed = true;
             base.ReleaseAll();
+        }
+
+        public void Dispose() {
+            ReleaseAll();
         }
 
         class ReusableSocket : Socket {
@@ -64,7 +68,7 @@ namespace Chuye.Kafka.Internal {
             protected override void Dispose(bool disposing) {
                 // NOT dispose, wait for ObjectPool's DetachItem()
                 //base.Dispose(disposing); 
-                if (!_pool.MarkAsReleased) {
+                if (!_pool.IsDisposed) {
                     _pool.ReturnItem(this);
                 }
                 else {

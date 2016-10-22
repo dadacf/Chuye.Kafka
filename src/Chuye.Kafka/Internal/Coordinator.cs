@@ -94,6 +94,35 @@ namespace Chuye.Kafka.Internal {
             _heartbeatTimer.Change(0L, Timeout.Infinite);
         }
 
+        private void ResolveTopicPartitionAssigned(SyncGroupMemberAssignment assignment) {
+            if (_partitionAssignments == null) {
+                _partitionAssignments = new Dictionary<String, Int32[]>();
+            }
+            else {
+                _partitionAssignments.Clear();
+            }
+
+            if (assignment.PartitionAssignments != null && assignment.PartitionAssignments.Count > 0) {
+                foreach (var partitionAssignment in assignment.PartitionAssignments) {
+                    if (partitionAssignment.Partitions.Length > 0) {
+                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', Member '{3}' dispathced Topic '{4}'({5})",
+                            DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _memberId,
+                            partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
+                        _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
+                    }
+                    else {
+                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', Member '{3}' dispathced Topic '{4}' no partition",
+                            DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _memberId, partitionAssignment.Topic);
+                    }
+                }
+            }
+            else {
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', assined nothing",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
+                //throw new InvalidOperationException("All partition has been assigned");
+            }
+        }
+
         private SyncGroupResponse TryJoinAndSyncGroup(Int32 retryCount, Int32 retryTimtout) {
             SyncGroupResponse resp = null;
             var retryUsed = 0;
@@ -109,14 +138,14 @@ namespace Chuye.Kafka.Internal {
 
                 var isLeader = _memberId != joinGroupResponse.LeaderId;
                 if (isLeader) {
-                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Join group '{2}', waiting for assingment as follower",
+                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Join group '{2}', waiting for assingments as follower",
                         DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
                     resp = SyncGroup(_groupId, _memberId, _generationId);
                 }
                 else {
                     Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #3 Join group '{2}', assigning topic and partitions as leader",
                         DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
-                    var assignments = AssigningTopicPartitions(Topics);
+                    var assignments = AssigningTopicPartitions(joinGroupResponse.Members).ToArray();
                     resp = SyncGroup(_groupId, _memberId, _generationId, assignments);
                 }
                 if (resp.ErrorCode == ErrorCode.RebalanceInProgressCode) {
@@ -130,40 +159,43 @@ namespace Chuye.Kafka.Internal {
             return resp;
         }
 
-        private void ResolveTopicPartitionAssigned(SyncGroupMemberAssignment assignment) {
-            if (_partitionAssignments == null) {
-                _partitionAssignments = new Dictionary<String, Int32[]>();
-            }
-            else {
-                _partitionAssignments.Clear();
-            }
+        //m1 join with t2
+        //m2 join with t1, t2
+        //m3 join with t1, t3
+        private IEnumerable<SyncGroupGroupAssignment> AssigningTopicPartitions(JoinGroupResponseMember[] members) {
+            //1. find all topic, got t1,t2, t3
+            var topics = members.SelectMany(x => x.MemberMetadata.Topics);
+            //2. for each topic, find partition and consumer
+            var assignments = new List<SyncGroupGroupAssignment>();
+            foreach (var topic in topics) {
+                var partitions = _partitionDispatcher.SelectPartitions(topic)
+                    .Select(x => x.Partition).ToArray();
+                var consumers = members.Where(x => x.MemberMetadata.Topics.Contains(topic)).ToArray();
+                
+                for (int i = 0; i < consumers.Length; i++) {
+                    //p: [0,1,2,3], c: [0,1]
+                    //result: p0 -> c0, p1 -> c1, p2 -> c0, p3 -> c1
+                    //equal: c0 -> [p0,p2], c1 -> [p1, p3]
+                    //> 分区数量不能被消费者整除时，靠后的消息者分配不到分区，此情况被 topic 循环放大； 可以通过 consumer 数组乱序改进
+                    //> 对于 "重新负载时，原有分配最小变动"的需求，初步想法是在 MemberId 上做文章，使特定 MemberId 优先命中特定的分区索引
+                    var partitionDispatched = partitions.Where((partition, index) => index % consumers.Length == i);
 
-            if (assignment.PartitionAssignments != null && assignment.PartitionAssignments.Count > 0) {
-                foreach (var partitionAssignment in assignment.PartitionAssignments) {
-                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', assined topic '{3}'({4})",
-                        DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
-                    _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
+                    yield return new SyncGroupGroupAssignment {
+                        MemberId = consumers[i].MemberId,
+                        MemberAssignment = new SyncGroupMemberAssignment {
+                            PartitionAssignments = new[] {
+                                    new SyncGroupPartitionAssignment {
+                                        Topic      = topic,
+                                        Partitions = partitionDispatched.ToArray()
+                                    }
+                                }
+                        }
+                    };
                 }
             }
-            else {
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Assined at group '{2}', assined nothing",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId);
-                throw new InvalidOperationException("All partition has been assigned");
-            }
         }
 
-        private void EnsureCoordinateBrokerExsiting() {
-            if (_coordinateBroker != null) {
-                return;
-            }
-            if (Interlocked.CompareExchange(ref _coordinateBroker, null, null) == null) {
-                _coordinateBroker = GroupCoordinator(_groupId);
-                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #2 Group coordinate got broker {2} at group '{3}'",
-                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinateBroker.ToUri().AbsoluteUri, _groupId);
-            }
-        }
-
-        private IList<SyncGroupGroupAssignment> AssigningTopicPartitions(IList<String> topics) {
+        /*private IList<SyncGroupGroupAssignment> AssigningTopicPartitions(IList<String> topics) {
             var assignments = new List<SyncGroupGroupAssignment>(topics.Count * _members.Length);
             foreach (var topic in topics) {
                 var partitions = _partitionDispatcher.SelectPartitions(topic)
@@ -179,6 +211,17 @@ namespace Chuye.Kafka.Internal {
                 }
             }
             return assignments;
+        }*/
+
+        private void EnsureCoordinateBrokerExsiting() {
+            if (_coordinateBroker != null) {
+                return;
+            }
+            if (Interlocked.CompareExchange(ref _coordinateBroker, null, null) == null) {
+                _coordinateBroker = GroupCoordinator(_groupId);
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #2 Group coordinate got broker {2} at group '{3}'",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinateBroker.ToUri().AbsoluteUri, _groupId);
+            }
         }
 
         private SyncGroupGroupAssignment AssignToOne(String memberId, String topic, Int32[] partitions) {

@@ -15,52 +15,60 @@ namespace Chuye.Kafka {
         private readonly String _topic;
         private readonly Coordinator _coordinator;
         private readonly KnownPartitionDispatcher _partitionDispatcher;
+        private Int32[] _partitionAssigned;
 
         public String GroupId {
             get { return _groupId; }
         }
 
+        public Int32[] PartitionAssigned {
+            get { return _partitionAssigned; }
+        }
+
+        public CoordinatorState CoordinatorState {
+            get {
+                if (_coordinator == null) {
+                    throw new InvalidOperationException("Run initialize first");
+                }
+                return _coordinator.State;
+            }
+        }
+
         public Consumer(Option option, String groupId, String topic) {
-            _client = option.GetSharedClient();
-            _groupId = groupId;
-            _topic = topic;
-            _coordinator = option.GetSharedCoordinatorAgent().SelectSpecified(groupId);
+            _client                    = option.GetSharedClient();
+            _groupId                   = groupId;
+            _topic                     = topic;
+            _coordinator               = new Coordinator(option, groupId);
             _coordinator.StateChanged += Coordinator_StateChanged;
-            _partitionDispatcher = new KnownPartitionDispatcher();
+            _partitionDispatcher       = new KnownPartitionDispatcher();
         }
 
         public void Initialize() {
-            var hash = new HashSet<String>(_coordinator.Topics ?? Enumerable.Empty<String>());
-            if (!hash.Contains(_topic)) {
-                hash.Add(_topic);
-                _coordinator.Topics = hash.ToArray();
-                _coordinator.RebalanceAsync();
-                WaitForRebalace();
-            }
+            _coordinator.Topics = new[] { _topic };
+            _coordinator.RebalanceAsync();
+            WaitForRebalace(20, 100);
         }
 
-        private void Coordinator_StateChanged(object sender, CoordinatorStateChangedEventArgs e) {
+        private void Coordinator_StateChanged(Object sender, CoordinatorStateChangedEventArgs e) {
             if (e.State == CoordinatorState.Stable) {
-                var partitions = _coordinator.GetPartitionAssigned(_topic);
-                if (partitions == null || partitions.Length == 0) {
-                    //todo:
-                }
-                _partitionDispatcher.ChangeKnown(partitions);
+                _partitionAssigned = _coordinator.GetPartitionAssigned(_topic);
+                _partitionDispatcher.ChangeKnown(_partitionAssigned);
             }
         }
 
-        private void WaitForRebalace() {
-            var wait = 0;
-            while (++wait < 100 && _coordinator.State != CoordinatorState.Stable) {
-                Thread.Sleep(100);
-            }
-
-            if (_coordinator.State != CoordinatorState.Stable) {
-                Console.WriteLine("Rebalance fail");
+        private void WaitForRebalace(Int32 retryCount, Int32 retryTimtout) {
+            var retryUsed = 0;
+            while (++retryUsed < retryCount && _coordinator.State != CoordinatorState.Stable) {
+                Thread.Sleep(retryTimtout);
             }
         }
 
         public IEnumerable<Message> Fetch() {
+            if (_coordinator.State != CoordinatorState.Stable) {
+                Trace.TraceWarning("{0:HH:mm:ss.fff} [{1:d2}] #6 Rebalance at {2}, fetch interrupted",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinator.State);
+                return Enumerable.Empty<Message>();
+            }
             var partition = _partitionDispatcher.SelectParition();
             Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Fetch topic '{2}'({3})",
                 DateTime.Now, Thread.CurrentThread.ManagedThreadId, _topic, partition);

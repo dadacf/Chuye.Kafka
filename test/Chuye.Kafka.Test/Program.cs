@@ -12,12 +12,11 @@ using Chuye.Kafka.Protocol;
 namespace Chuye.Kafka.Test {
     public class Program {
         public static void Main(string[] args) {
-            DeserializeFrom();
-
             Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
-            Task.Run(action: SendRequest);
-            //Task.Run(action: SendRequest);
-            Console.ReadLine();
+            SendRequest();
+            //DeserializeFrom();
+
+            //Console.ReadLine();
         }
 
         static void DeserializeFrom() {
@@ -33,13 +32,8 @@ namespace Chuye.Kafka.Test {
             option.GetSharedClient().RequestSending += (_, e) => {
                 e.Uri = new Uri(e.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
             };
-
-            var consumer = new Consumer(option, "demoGroupId", "demoTopic1");
-            consumer.Initialize();
-            for (int i = 0; i < 100; i++) {
-                Console.WriteLine("Fetch got {0}", consumer.Fetch().Count());
-                Thread.Sleep(5000);
-            }
+            var coordinator = new Coordinator(option, "demoGroupId");
+            var resp = coordinator.DescribeGroups(new[] { "demoGroupId" });
 
         }
     }
