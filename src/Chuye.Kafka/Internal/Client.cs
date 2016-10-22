@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -11,32 +12,26 @@ namespace Chuye.Kafka.Internal {
     public class Client {
         private const String TermPattern = "[a-zA-Z][a-zA-Z0-9_-]*";
         private const String __consumer_offsets = "__consumer_offsets";
-        private readonly ExistingBrokerDispatcher _existingBrokerDispatcher;
-        //todo: chicken-and-egg problem
-        private /*readonly*/ TopicBrokerDispatcher _topicBrokerDispatcher;
-        private readonly Option _option;
+        private readonly KnownBrokerDispatcher _knownBrokerDispatcher;
+        private readonly TopicBrokerDispatcher _topicBrokerDispatcher;
+        private readonly ConnectionFactory _connectionFactory;
 
-        public event EventHandler<RequestSubmittingEventArgs> RequestSubmitting;
-
-        internal Option Option {
-            get { return _option; }
+        public event EventHandler<RequestSendingEventArgs> RequestSending;
+        public event EventHandler<ResponseReceivedEventArg> ResponseReceived;
+        
+        internal KnownBrokerDispatcher ExistingBrokerDispatcher {
+            get { return _knownBrokerDispatcher; }
         }
 
-        public Client(Option option)
-            : this(option, new ExistingBrokerDispatcher(option.BrokerUris)) {
+        internal TopicBrokerDispatcher TopicBrokerDispatcher {
+            get { return _topicBrokerDispatcher; }
         }
 
-        internal Client(Option option, ExistingBrokerDispatcher existingBrokerDispatcher) {
-            _option = option;
-            _existingBrokerDispatcher = existingBrokerDispatcher;
+        public Client(Option option) { 
+            _connectionFactory = option.GetSharedConnections();
+            _knownBrokerDispatcher = new KnownBrokerDispatcher(option.BrokerUris.ToArray());
             _topicBrokerDispatcher = new TopicBrokerDispatcher(this);
         }
-
-        //todo: chicken-and-egg problem
-        internal void ReplaceDispatcher(TopicBrokerDispatcher topicBrokerDispatcher) {
-            _topicBrokerDispatcher = topicBrokerDispatcher;
-        }
-
 
         private void EnsureLegalTopicSpelling(String topic) {
             if (topic == null) {
@@ -48,17 +43,51 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        private Response SubmitRequest(Uri uri, Request request) {
-            var @event = new RequestSubmittingEventArgs(uri, request);
-            OnRequestSubmitting(@event);
-            var connectionFactory = _option.GetConnectionFactory();
-            using (var connection = connectionFactory.Connect(@event.Uri)) {
-                return connection.Submit(@event.Request);
+        internal Response SubmitRequest(Broker broker, Request req) {
+            return SubmitRequest(broker.ToUri(), req);
+        }
+
+        internal Response SubmitRequest(Uri uri, Request req) {
+            var reqEvent = new RequestSendingEventArgs(uri, req);
+            OnRequestSending(reqEvent);
+            //Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Sending {2} to {3}",
+            //    DateTime.Now, Thread.CurrentThread.ManagedThreadId, reqEvent.Request.ApiKey, reqEvent.Uri.AbsoluteUri);
+            using (var connection = _connectionFactory.Connect(reqEvent.Uri)) {
+                var resp = connection.Submit(reqEvent.Request);
+                //Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Received {2} from {3}",
+                //    DateTime.Now, Thread.CurrentThread.ManagedThreadId, resp.GetType().Name, reqEvent.Uri.AbsoluteUri);
+                var respEvent = new ResponseReceivedEventArg(resp);
+                OnResponseReceived(respEvent);
+                return respEvent.Response;
             }
         }
 
-        private void OnRequestSubmitting(RequestSubmittingEventArgs @event) {
-            RequestSubmitting?.Invoke(this, @event);
+        internal Task<Response> SubmitRequestAsync(Broker broker, Request req) {
+            return SubmitRequestAsync(broker, req);
+        }
+
+
+        internal async Task<Response> SubmitRequestAsync(Uri uri, Request req) {
+            var reqEvent = new RequestSendingEventArgs(uri, req);
+            OnRequestSending(reqEvent);
+            //Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Sending {2} to {3}",
+            //    DateTime.Now, Thread.CurrentThread.ManagedThreadId, reqEvent.Request.ApiKey, reqEvent.Uri.AbsoluteUri);
+            using (var connection = _connectionFactory.Connect(reqEvent.Uri)) {
+                var resp = await connection.SubmitAsync(reqEvent.Request);
+                //Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Received {2} from {3}",
+                //    DateTime.Now, Thread.CurrentThread.ManagedThreadId, resp.GetType().Name, reqEvent.Uri.AbsoluteUri);
+                var respEvent = new ResponseReceivedEventArg(resp);
+                OnResponseReceived(respEvent);
+                return respEvent.Response;
+            }
+        }
+
+        protected virtual void OnRequestSending(RequestSendingEventArgs @event) {
+            RequestSending?.Invoke(this, @event);
+        }
+
+        protected virtual void OnResponseReceived(ResponseReceivedEventArg @event) {
+            ResponseReceived?.Invoke(this, @event);
         }
 
         public MetadataResponse Metadata(params String[] topics) {
@@ -69,7 +98,7 @@ namespace Chuye.Kafka.Internal {
                 EnsureLegalTopicSpelling(topic);
             }
 
-            var brokerUri = _existingBrokerDispatcher.FreeSelect();
+            var brokerUri = _knownBrokerDispatcher.FreeSelect();
             var request = new MetadataRequest(topics);
             var response = (MetadataResponse)SubmitRequest(brokerUri, request);
             response.TopicMetadatas = response.TopicMetadatas
@@ -79,9 +108,18 @@ namespace Chuye.Kafka.Internal {
 
         public Int64 Produce(String topic, Int32 partition, IList<Message> messages) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new ProduceRequest(topic, partition, messages);
-            var response = (ProduceResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (ProduceResponse)SubmitRequest(broker, request);
+            response.TryThrowFirstErrorOccured();
+            return response.TopicPartitions[0].Details[0].Offset;
+        }
+
+        public async Task<Int64> ProduceAsync(String topic, Int32 partition, IList<Message> messages) {
+            EnsureLegalTopicSpelling(topic);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
+            var request = new ProduceRequest(topic, partition, messages);
+            var response = (ProduceResponse)(await SubmitRequestAsync(broker.ToUri(), request));
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions[0].Details[0].Offset;
         }
@@ -92,9 +130,9 @@ namespace Chuye.Kafka.Internal {
 
         public IEnumerable<OffsetMessage> Fetch(String topic, Int32 partition, Int64 fetchOffset) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new FetchRequest(topic, partition, fetchOffset);
-            var response = (FetchResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (FetchResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions.SelectMany(x => x.MessageBodys)
                 .SelectMany(x => x.MessageSet.Items)
@@ -104,9 +142,9 @@ namespace Chuye.Kafka.Internal {
 
         public Int64 Offset(String topic, Int32 partition, OffsetOption option) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new OffsetRequest(topic, new[] { partition }, option);
-            var response = (OffsetResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (OffsetResponse)SubmitRequest(broker, request);
             var errors = response.TopicPartitions
                 .SelectMany(r => r.PartitionOffsets)
                 .Where(x => x.ErrorCode != ErrorCode.NoError)
@@ -133,9 +171,9 @@ namespace Chuye.Kafka.Internal {
 
         public Int64 OffsetFetch(String topic, Int32 partition, String groupId) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new OffsetFetchRequest(topic, new[] { partition }, groupId);
-            var response = (OffsetFetchResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (OffsetFetchResponse)SubmitRequest(broker, request);
             var errors = response.TopicPartitions
                 .SelectMany(r => r.Details)
                 .Where(x => x.ErrorCode != ErrorCode.NoError)
@@ -162,9 +200,9 @@ namespace Chuye.Kafka.Internal {
 
         public ErrorCode OffsetCommit(String topic, Int32 partition, String groupId, Int64 offset) {
             EnsureLegalTopicSpelling(topic);
-            var broker = _topicBrokerDispatcher.Select(topic, partition);
+            var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = OffsetCommitRequest.CreateV0(topic, partition, groupId, offset);
-            var response = (OffsetCommitResponse)SubmitRequest(broker.ToUri(), request);
+            var response = (OffsetCommitResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions[0].Details[0].ErrorCode;
         }

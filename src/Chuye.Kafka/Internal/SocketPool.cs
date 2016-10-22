@@ -8,9 +8,15 @@ using System.Threading.Tasks;
 namespace Chuye.Kafka.Internal {
     class SocketPool : ObjectPool<Socket> {
         private readonly Uri _uri;
+        private Boolean _markAsReleased;
+
+        public Boolean MarkAsReleased {
+            get { return _markAsReleased; }
+        }
 
         public SocketPool(Uri uri) {
             _uri = uri;
+            _markAsReleased = false;
         }
 
         protected override Socket Constructing() {
@@ -20,6 +26,10 @@ namespace Chuye.Kafka.Internal {
         }
 
         public override Socket AcquireItem() {
+            if (_markAsReleased) {
+                throw new InvalidOperationException("Object has marked released");
+            }
+
             var socket = base.AcquireItem();
             while (!IsConnected(socket)) {
                 DetachItem(socket);
@@ -38,6 +48,11 @@ namespace Chuye.Kafka.Internal {
             ((ReusableSocket)item).Destroy();
         }
 
+        public override void ReleaseAll() {
+            _markAsReleased = true;
+            base.ReleaseAll();
+        }
+
         class ReusableSocket : Socket {
             private readonly SocketPool _pool;
 
@@ -49,7 +64,12 @@ namespace Chuye.Kafka.Internal {
             protected override void Dispose(bool disposing) {
                 // NOT dispose, wait for ObjectPool's DetachItem()
                 //base.Dispose(disposing); 
-                _pool.ReturnItem(this);
+                if (!_pool.MarkAsReleased) {
+                    _pool.ReturnItem(this);
+                }
+                else {
+                    Destroy();
+                }
             }
 
             public void Destroy() {

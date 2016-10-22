@@ -4,20 +4,20 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Chuye.Kafka.Protocol;
 
 namespace Chuye.Kafka.Internal {
-    class TopicPartitionDispatcher : TopicBrokerDispatcher {
+    class TopicPartitionDispatcher {
         private readonly Dictionary<String, Int32> _sequences;
         private readonly ReaderWriterLockSlim _sync;
+        private readonly TopicBrokerDispatcher _dispatcher;
 
-        public TopicPartitionDispatcher(Client client)
-            : base(client) {
+        public TopicPartitionDispatcher(TopicBrokerDispatcher dispatcher) {
+            _dispatcher = dispatcher;
             _sequences = new Dictionary<String, Int32>();
             _sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         }
 
-        public TopicPartition SequentialSelect(String topic) {
+        private Int32 Sequential(String topic) {
             var sequence = -1;
             _sync.EnterWriteLock();
             try {
@@ -27,10 +27,18 @@ namespace Chuye.Kafka.Internal {
             finally {
                 _sync.ExitWriteLock();
             }
+            return sequence;
+        }
 
-            base.Select(topic);
-            var topicPartition = Topics.Where(x => x.Name == topic).ToArray();
-            return topicPartition[sequence % topicPartition.Length];
+        public TopicPartition SelectPartition(String topic) {
+            Int32 sequence = Sequential(topic);
+            var topicPartitions = SelectPartitions(topic);
+            return topicPartitions[sequence % topicPartitions.Count];
+        }
+
+        public IReadOnlyList<TopicPartition> SelectPartitions(String topic) {
+            _dispatcher.SelectBrokers(topic);
+            return _dispatcher.Topics.Where(x => x.Name == topic).ToArray();
         }
     }
 }

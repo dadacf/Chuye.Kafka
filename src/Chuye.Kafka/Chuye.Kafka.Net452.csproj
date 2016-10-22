@@ -40,10 +40,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Internal\CoordinatorAgent.cs" />
+    <Compile Include="Internal\CoordinatorBrokerDispatcher.cs" />
     <Compile Include="Internal\Client.cs" />
-    <Compile Include="Internal\ExistingBrokerDispatcher.cs" />
-    <Compile Include="Internal\PartitionedMessageQueue.cs" />
-    <Compile Include="Internal\RequestSubmittingEventArgs.cs" />
+    <Compile Include="Internal\Coordinator.cs" />
+    <Compile Include="Internal\CoordinatorState.cs" />
+    <Compile Include="Internal\KnownBrokerDispatcher.cs" />
+    <Compile Include="Internal\DelayedMessageQueue.cs" />
+    <Compile Include="Internal\KnownPartitionDispatcher.cs" />
+    <Compile Include="Internal\ResponseReceivedEventArg.cs" />
+    <Compile Include="Internal\RequestSendingEventArgs.cs" />
     <Compile Include="Internal\SocketPool.cs" />
     <Compile Include="Internal\TopicBrokerDispatcher.cs" />
     <Compile Include="Internal\TopicPartitionDispatcher.cs" />

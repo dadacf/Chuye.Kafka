@@ -36,6 +36,22 @@ namespace Chuye.Kafka.Protocol {
             }
         }
 
+        public static Response DeserializeFrom(Stream stream, ApiKey apiKey) {
+            using (var reader = new KafkaReader(stream)) {
+                var size = reader.ReadInt32();
+                var typeName = apiKey.ToString().Replace("Request", "Response");
+                var fullTypeNaem = (Int32)apiKey < 10 ? "Chuye.Kafka.Protocol." + typeName
+                    : "Chuye.Kafka.Protocol.Management." + typeName;
+                var type = Type.GetType(fullTypeNaem);
+                var instance = (Response)Activator.CreateInstance(type); 
+
+                instance.Size = size;
+                instance.CorrelationId = reader.ReadInt32();
+                instance.DeserializeContent(reader);
+                return instance;
+            }
+        }
+
         protected abstract void DeserializeContent(KafkaReader reader);
 
         protected abstract void SerializeContent(KafkaWriter writer);

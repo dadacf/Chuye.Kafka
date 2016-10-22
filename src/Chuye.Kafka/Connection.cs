@@ -20,6 +20,9 @@ namespace Chuye.Kafka {
         }
 
         public Connection(String host, Int32 port) {
+            if (host == null) {
+                throw new ArgumentNullException("host");
+            }
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _socket.Connect(host, port);
         }
@@ -32,6 +35,9 @@ namespace Chuye.Kafka {
         }
 
         public Response Submit(Request request) {
+            if (request == null) {
+                throw new ArgumentNullException("request");
+            }
             using (var stream = new MemoryStream(4096)) {
                 request.Serialize(stream);
                 stream.Seek(0L, SeekOrigin.Begin);
@@ -39,6 +45,24 @@ namespace Chuye.Kafka {
                 using (var networkStream = new NetworkStream(_socket)) {
                     stream.CopyTo(networkStream);
                     stream.Flush();
+                    var response = GenerateResponse(request.ApiKey);
+                    response.Deserialize(networkStream);
+                    return response;
+                }
+            }
+        }
+
+        public async Task<Response> SubmitAsync(Request request) {
+            if (request == null) {
+                throw new ArgumentNullException("request");
+            }
+            using (var stream = new MemoryStream(4096)) {
+                request.Serialize(stream);
+                stream.Seek(0L, SeekOrigin.Begin);
+
+                using (var networkStream = new NetworkStream(_socket)) {
+                    await stream.CopyToAsync(networkStream);
+                    await stream.FlushAsync();
                     var response = GenerateResponse(request.ApiKey);
                     response.Deserialize(networkStream);
                     return response;

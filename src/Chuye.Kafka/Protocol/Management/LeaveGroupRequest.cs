@@ -17,13 +17,19 @@ namespace Chuye.Kafka.Protocol.Management {
             : base(ApiKey.LeaveGroupRequest) {
         }
 
+        public LeaveGroupRequest(String groupId, String memberId)
+            : this() {
+            GroupId = groupId;
+            MemberId = memberId;
+        }
+
         protected override void SerializeContent(KafkaWriter writer) {
             writer.Write(GroupId);
             writer.Write(MemberId);
         }
 
         protected override void DeserializeContent(KafkaReader reader) {
-            GroupId  = reader.ReadString();
+            GroupId = reader.ReadString();
             MemberId = reader.ReadString();
         }
     }
