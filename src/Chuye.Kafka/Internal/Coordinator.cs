@@ -104,9 +104,16 @@ namespace Chuye.Kafka.Internal {
 
             if (assignment.PartitionAssignments != null && assignment.PartitionAssignments.Count > 0) {
                 foreach (var partitionAssignment in assignment.PartitionAssignments) {
-                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', assined topic '{3}'({4})",
-                        DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
-                    _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
+                    if (partitionAssignment.Partitions.Length > 0) {
+                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', Member '{3}' dispathced Topic '{4}'({5})",
+                            DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _memberId,
+                            partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
+                        _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
+                    }
+                    else {
+                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', Member '{3}' dispathced Topic '{4}' no partition",
+                            DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _memberId, partitionAssignment.Topic);
+                    }
                 }
             }
             else {

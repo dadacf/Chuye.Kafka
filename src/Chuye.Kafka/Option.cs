@@ -12,7 +12,6 @@ namespace Chuye.Kafka {
         private Uri[] _brokerUris;
         private ConnectionFactory _connectionFactory;
         private Client _client;
-        private CoordinatorAgent _coordinatorAgent;
         private NameValueCollection _property;
 
         public IReadOnlyList<Uri> BrokerUris {
@@ -52,14 +51,6 @@ namespace Chuye.Kafka {
             //同 GetSharedConnections()
             Interlocked.CompareExchange(ref _client, new Client(this), null);
             return _client;
-        }
-
-        internal Coordinator GetSharedCoordinator(String groupId) {
-            if (_coordinatorAgent == null) {
-                Interlocked.CompareExchange(ref _coordinatorAgent, new CoordinatorAgent(this), null);
-            }
-            //同 GetSharedConnections()
-            return _coordinatorAgent.SelectSpecified(groupId);            
         }
 
         public void Dispose() {
