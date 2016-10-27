@@ -39,12 +39,12 @@ namespace Chuye.Kafka.Test {
 
         static void StartConsume() {
             var option = new Option(new Uri("http://ubuntu-16:9094"), new Uri("http://ubuntu-16:9093"));
-            var consumer = new Consumer(option, "demoGroupId", "demoTopic3");
+            var consumer = new Consumer(option, "demoGroupId", "demoTopic2");
             consumer.Initialize();
 
             OffsetMessage msg;
             while (consumer.TryNext(out msg)) {
-                Console.WriteLine("Got msg: {0}", msg.ToString());
+                //Console.WriteLine("Got msg: {0}", msg.ToString());
             }             
         }
     }

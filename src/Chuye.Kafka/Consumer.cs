@@ -58,7 +58,7 @@ namespace Chuye.Kafka {
         private void Coordinator_StateChanged(Object sender, CoordinatorStateChangedEventArgs e) {
             if (e.State == CoordinatorState.Stable) {
                 if (_offsets != null) {
-                    _offsets.SubmitSavedOffset();
+                    _offsets.Proceed(_messages.Partition, _messages.Offset);
                 }
 
                 var partitionAssigned = _coordinator.GetPartitionAssigned(_topic);
@@ -80,14 +80,14 @@ namespace Chuye.Kafka {
                 needFetch = true;
             }
             else {
-                if (_messages.Position == _messages.Count - 1) {
+                var executeCommit = false;
+                if (_messages.Offset == _messages.Count - 1) {
                     needFetch = true;
-                    _offsets.SubmitSavedOffset();
+                    executeCommit = true;
                 }
-                else {
-                    _offsets.Proceed(_messages.Partition, _messages.Offset);
-                }
+                _offsets.Proceed(_messages.Partition, _messages.Offset, executeCommit);
             }
+            
             if (!needFetch) {
                 return;
             }
@@ -99,10 +99,10 @@ namespace Chuye.Kafka {
             }
 
             var partition = _partitionDispatcher.SelectParition();
-            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Fetch topic '{2}'({3})",
-                DateTime.Now, Thread.CurrentThread.ManagedThreadId, _topic, partition);
-            var savedOffset = _offsets.GetSavedOffset(partition);
-            var messages = _client.Fetch(_topic, partition, savedOffset).ToArray();
+            var offset = _offsets.GetSavedOffset(partition);
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Fetch at groupId '{2}', topic '{3}'({4}), offset {5}",
+                DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _topic, partition, offset);
+            var messages = _client.Fetch(_topic, partition, offset).ToArray();
             _messages = new MessageChunk(messages, partition);
         }
 
@@ -160,18 +160,23 @@ namespace Chuye.Kafka {
             }
 
             public void Proceed(Int32 partition, Int64 offset) {
+                Proceed(partition, offset, false);
+            }
+
+            public void Proceed(Int32 partition, Int64 offset, Boolean ignoreDiff) {
                 var index = Array.IndexOf(_partitions, partition);
                 if (_offsetSaved[index] > offset) {
                     throw new ArgumentOutOfRangeException("offset");
+                }                
+                if(_offsetSaved[index] > offset) {
+                    return;
                 }
-                Console.WriteLine("Proceed partition {0}, saved {1}, submitted {2}",
-                    partition, _offsetSaved[index], _offsetSubmited[index]);
-                _offsetSaved[index] = offset;
-                /*if (DateTime.UtcNow.Subtract(_lastSubmit).TotalSeconds > 5) {
-                    SubmitOffsets();
-                }
-                else*/
-                if (_offsetSubmited[index] + 10 < offset) {
+
+                _offsetSaved[index] = offset;                
+                if (ignoreDiff || _offsetSubmited[index] + 9 < offset) {
+                    Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] OffsetCommit at group '{2}', topic '{3}'({4}), saved {5}, submitted {6}",
+                        DateTime.Now, Thread.CurrentThread.ManagedThreadId, _consumer.GroupId, _consumer.Topic, partition, _offsetSaved[index], _offsetSubmited[index]);
+
                     OffsetCommit(partition, offset);
                     _offsetSubmited[index] = offset;
                 }
@@ -181,16 +186,6 @@ namespace Chuye.Kafka {
                 Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] OffsetCommit at group '{2}', topic '{3}'({4}), offset {5}",
                     DateTime.Now, Thread.CurrentThread.ManagedThreadId, _consumer.GroupId, _consumer.Topic, partition, offset);
                 _consumer.Client.OffsetCommit(_consumer.Topic, partition, _consumer.GroupId, offset + 1);
-            }
-
-            public void SubmitSavedOffset() {
-                for (int i = 0; i < _partitions.Length; i++) {
-                    var index = Array.IndexOf(_partitions, _partitions[i]);
-                    if (_offsetSubmited[index] < _offsetSaved[index]) {
-                        _offsetSubmited[index] = _offsetSaved[index];
-                        OffsetCommit(_partitions[i], _offsetSubmited[index]);
-                    }
-                }
             }
 
             public Int64 GetSavedOffset(Int32 partition) {
