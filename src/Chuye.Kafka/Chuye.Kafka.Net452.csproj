@@ -40,10 +40,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Internal\CoordinatorBrokerDispatcher.cs" />
     <Compile Include="Internal\Client.cs" />
     <Compile Include="Internal\Coordinator.cs" />
     <Compile Include="Internal\CoordinatorState.cs" />
+    <Compile Include="Internal\Enumerable`.cs" />
     <Compile Include="Internal\KnownBrokerDispatcher.cs" />
     <Compile Include="Internal\DelayedMessageQueue.cs" />
     <Compile Include="Internal\KnownPartitionDispatcher.cs" />

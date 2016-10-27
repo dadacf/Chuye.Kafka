@@ -13,7 +13,8 @@ namespace Chuye.Kafka.Test {
     public class Program {
         public static void Main(string[] args) {
             Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
-            SendRequest();
+            //SendRequest();
+            StartConsume();
             //DeserializeFrom();
 
             //Console.ReadLine();
@@ -34,7 +35,17 @@ namespace Chuye.Kafka.Test {
             };
             var coordinator = new Coordinator(option, "demoGroupId");
             var resp = coordinator.DescribeGroups(new[] { "demoGroupId" });
+        }
 
+        static void StartConsume() {
+            var option = new Option(new Uri("http://ubuntu-16:9094"), new Uri("http://ubuntu-16:9093"));
+            var consumer = new Consumer(option, "demoGroupId", "demoTopic3");
+            consumer.Initialize();
+
+            OffsetMessage msg;
+            while (consumer.TryNext(out msg)) {
+                Console.WriteLine("Got msg: {0}", msg.ToString());
+            }             
         }
     }
 }

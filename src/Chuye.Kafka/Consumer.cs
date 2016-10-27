@@ -1,12 +1,13 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Chuye.Kafka.Internal;
 using Chuye.Kafka.Protocol;
-using System.Threading;
-using System.Diagnostics;
 
 namespace Chuye.Kafka {
     public class Consumer {
@@ -15,14 +16,19 @@ namespace Chuye.Kafka {
         private readonly String _topic;
         private readonly Coordinator _coordinator;
         private readonly KnownPartitionDispatcher _partitionDispatcher;
-        private Int32[] _partitionAssigned;
+        private MessageChunk _messages;
+        private OffsetRecorder _offsets;
+
+        internal Client Client {
+            get { return _client; }
+        }
 
         public String GroupId {
             get { return _groupId; }
         }
 
-        public Int32[] PartitionAssigned {
-            get { return _partitionAssigned; }
+        public String Topic {
+            get { return _topic; }
         }
 
         public CoordinatorState CoordinatorState {
@@ -35,12 +41,12 @@ namespace Chuye.Kafka {
         }
 
         public Consumer(Option option, String groupId, String topic) {
-            _client                    = option.GetSharedClient();
-            _groupId                   = groupId;
-            _topic                     = topic;
-            _coordinator               = new Coordinator(option, groupId);
+            _client = option.GetSharedClient();
+            _groupId = groupId;
+            _topic = topic;
+            _coordinator = new Coordinator(option, groupId);
             _coordinator.StateChanged += Coordinator_StateChanged;
-            _partitionDispatcher       = new KnownPartitionDispatcher();
+            _partitionDispatcher = new KnownPartitionDispatcher();
         }
 
         public void Initialize() {
@@ -51,8 +57,13 @@ namespace Chuye.Kafka {
 
         private void Coordinator_StateChanged(Object sender, CoordinatorStateChangedEventArgs e) {
             if (e.State == CoordinatorState.Stable) {
-                _partitionAssigned = _coordinator.GetPartitionAssigned(_topic);
-                _partitionDispatcher.ChangeKnown(_partitionAssigned);
+                if (_offsets != null) {
+                    _offsets.SubmitSavedOffset();
+                }
+
+                var partitionAssigned = _coordinator.GetPartitionAssigned(_topic);
+                _partitionDispatcher.ChangeKnown(partitionAssigned);
+                _offsets = new OffsetRecorder(this, partitionAssigned);
             }
         }
 
@@ -63,18 +74,137 @@ namespace Chuye.Kafka {
             }
         }
 
-        public IEnumerable<Message> Fetch() {
+        private void EnsureMessageFetched() {
+            var needFetch = false;
+            if (_messages == null) {
+                needFetch = true;
+            }
+            else {
+                if (_messages.Position == _messages.Count - 1) {
+                    needFetch = true;
+                    _offsets.SubmitSavedOffset();
+                }
+                else {
+                    _offsets.Proceed(_messages.Partition, _messages.Offset);
+                }
+            }
+            if (!needFetch) {
+                return;
+            }
+
             if (_coordinator.State != CoordinatorState.Stable) {
                 Trace.TraceWarning("{0:HH:mm:ss.fff} [{1:d2}] #6 Rebalance at {2}, fetch interrupted",
                     DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinator.State);
-                return Enumerable.Empty<Message>();
+                return;
             }
+
             var partition = _partitionDispatcher.SelectParition();
             Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Fetch topic '{2}'({3})",
                 DateTime.Now, Thread.CurrentThread.ManagedThreadId, _topic, partition);
-            var earliestOffset = _client.Offset(_topic, partition, OffsetOption.Earliest);
-            //todo: Offset manage
-            return _client.Fetch(_topic, partition, earliestOffset);
+            var savedOffset = _offsets.GetSavedOffset(partition);
+            var messages = _client.Fetch(_topic, partition, savedOffset).ToArray();
+            _messages = new MessageChunk(messages, partition);
+        }
+
+        public OffsetMessage Next() {
+            EnsureMessageFetched();
+            OffsetMessage message;
+            _messages.Next(out message);
+            return message;
+        }
+
+        public Boolean TryNext(out OffsetMessage message) {
+            EnsureMessageFetched();
+            return _messages.Next(out message);
+        }
+
+        public IEnumerable<Message> Fetch() {
+            EnsureMessageFetched();
+            return _messages;
+        }
+
+        class MessageChunk : Enumerable<OffsetMessage> {
+            private Int32 _partition;
+            private Int64 _initialOffset;
+
+            public Int32 Partition {
+                get { return _partition; }
+            }
+
+            public Int64 Offset {
+                get {
+                    return _initialOffset + base.Position;
+                }
+            }
+
+            public MessageChunk(OffsetMessage[] array, Int32 partition)
+                : base(array) {
+                _partition = partition;
+                _initialOffset = array[0].Offset;
+            }
+        }
+
+        class OffsetRecorder {
+            private readonly Consumer _consumer;
+            private readonly Int32[] _partitions;
+            private readonly Int64[] _offsetSaved;
+            private readonly Int64[] _offsetSubmited;
+            private DateTime _lastSubmit;
+
+            public OffsetRecorder(Consumer consumer, Int32[] partitions) {
+                _consumer = consumer;
+                _partitions = partitions;
+                _offsetSaved = Enumerable.Repeat(-1L, partitions.Length).ToArray();
+                _offsetSubmited = new Int64[partitions.Length];
+                _lastSubmit = DateTime.UtcNow;
+            }
+
+            public void Proceed(Int32 partition, Int64 offset) {
+                var index = Array.IndexOf(_partitions, partition);
+                if (_offsetSaved[index] > offset) {
+                    throw new ArgumentOutOfRangeException("offset");
+                }
+                Console.WriteLine("Proceed partition {0}, saved {1}, submitted {2}",
+                    partition, _offsetSaved[index], _offsetSubmited[index]);
+                _offsetSaved[index] = offset;
+                /*if (DateTime.UtcNow.Subtract(_lastSubmit).TotalSeconds > 5) {
+                    SubmitOffsets();
+                }
+                else*/
+                if (_offsetSubmited[index] + 10 < offset) {
+                    OffsetCommit(partition, offset);
+                    _offsetSubmited[index] = offset;
+                }
+            }
+
+            private void OffsetCommit(int partition, long offset) {
+                Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] OffsetCommit at group '{2}', topic '{3}'({4}), offset {5}",
+                    DateTime.Now, Thread.CurrentThread.ManagedThreadId, _consumer.GroupId, _consumer.Topic, partition, offset);
+                _consumer.Client.OffsetCommit(_consumer.Topic, partition, _consumer.GroupId, offset + 1);
+            }
+
+            public void SubmitSavedOffset() {
+                for (int i = 0; i < _partitions.Length; i++) {
+                    var index = Array.IndexOf(_partitions, _partitions[i]);
+                    if (_offsetSubmited[index] < _offsetSaved[index]) {
+                        _offsetSubmited[index] = _offsetSaved[index];
+                        OffsetCommit(_partitions[i], _offsetSubmited[index]);
+                    }
+                }
+            }
+
+            public Int64 GetSavedOffset(Int32 partition) {
+                var index = Array.IndexOf(_partitions, partition);
+                var offset = _offsetSaved[index];
+                if (offset == -1L) {
+                    offset = _consumer.Client.OffsetFetch(_consumer.Topic, partition, _consumer.GroupId);
+                }
+                if (offset == -1L) {
+                    offset = _consumer.Client.Offset(_consumer.Topic, partition, OffsetOption.Earliest);
+                    _offsetSaved[index] = offset;
+                }
+                return offset;
+            }
         }
     }
 }
