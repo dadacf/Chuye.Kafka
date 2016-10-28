@@ -23,19 +23,16 @@ namespace Chuye.Kafka.Protocol {
         }
 
         public void FetchFrom(KafkaReader reader) {
-            if (_messageBody.HighwaterMarkOffset <= 0) {
+            if (_messageBody.MessageSetSize == 0 || _messageBody.HighwaterMarkOffset == 0) {
                 Items = new MessageSetDetail[0];
                 return;
             }
             var previousPosition = reader.PositionProceeded;
-            var items = new List<MessageSetDetail>((Int32)_messageBody.HighwaterMarkOffset);
-            for (int i = 0; i < _messageBody.HighwaterMarkOffset; i++) {
+            var items = new List<MessageSetDetail>(32);
+            while (reader.PositionProceeded - previousPosition < _messageBody.MessageSetSize) {
                 var item = new MessageSetDetail();
                 item.FetchFrom(reader);
                 items.Add(item);
-                if (reader.PositionProceeded - previousPosition == _messageBody.MessageSetSize) {
-                    break;
-                }
             }
             Items = items.ToArray();
         }

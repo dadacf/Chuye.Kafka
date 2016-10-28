@@ -58,6 +58,10 @@ namespace Chuye.Kafka.Protocol {
         //* REPLICA_NOT_AVAILABLE (9)
         //* UNKNOWN (-1)
         public ErrorCode ErrorCode { get; set; }
+        /// <summary>
+        /// The offset at the end of the log for this partition. 
+        /// This can be used by the client to determine how many messages behind the end of the log they are.
+        /// </summary>
         public Int64 HighwaterMarkOffset { get; set; }
         public Int32 MessageSetSize { get; set; }
         public MessageSet MessageSet { get; set; }
@@ -66,11 +70,11 @@ namespace Chuye.Kafka.Protocol {
             Partition           = reader.ReadInt32();
             ErrorCode           = (ErrorCode)reader.ReadInt16();
             HighwaterMarkOffset = reader.ReadInt64();
-            MessageSetSize      = reader.ReadInt32();            
-            MessageSet      = new MessageSet(this);
+            MessageSetSize      = reader.ReadInt32();
+            MessageSet          = new MessageSet(this);
             // Min length per MessageSet: 8 + 4 + ( 4 + 1 + 1 + 4 + key.length + 4 + value.length) is 26
             // It means 2 msg has minimal MessageBody = 26*2 = 52
-            MessageSet.FetchFrom(reader);            
+            MessageSet.FetchFrom(reader); 
         }
 
         public void SaveTo(KafkaWriter writer) {

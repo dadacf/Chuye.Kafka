@@ -9,8 +9,12 @@ namespace Chuye.Kafka.Internal {
         private Int32[] _paritions;
         private Int32 _sequence;
 
-        public KnownPartitionDispatcher() {
+        public Int32[] Paritions {
+            get { return _paritions; }
         }
+
+        public KnownPartitionDispatcher() {
+        }        
 
         public KnownPartitionDispatcher(Int32[] partitions) {
             ChangeKnown(partitions);

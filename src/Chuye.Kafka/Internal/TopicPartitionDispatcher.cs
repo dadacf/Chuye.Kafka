@@ -38,7 +38,7 @@ namespace Chuye.Kafka.Internal {
 
         public IReadOnlyList<TopicPartition> SelectPartitions(String topic) {
             _dispatcher.SelectBrokers(topic);
-            return _dispatcher.Topics.Where(x => x.Name == topic).ToArray();
+            return _dispatcher.Topics.Where(x => x.Name == topic).OrderBy(x => x.Partition).ToArray();
         }
     }
 }

@@ -23,6 +23,8 @@ namespace Chuye.Kafka.Internal {
         private CoordinatorState _state;
         private Dictionary<String, Int32[]> _partitionAssignments;
 
+        //todo: 使用 memeber-partition 记录分配的 partition 数量
+
         public event EventHandler<CoordinatorStateChangedEventArgs> StateChanged;
 
         public String[] Topics { get; set; }
@@ -224,7 +226,7 @@ namespace Chuye.Kafka.Internal {
             }
         }
 
-        private SyncGroupGroupAssignment AssignToOne(String memberId, String topic, Int32[] partitions) {
+        /*private SyncGroupGroupAssignment AssignToOne(String memberId, String topic, Int32[] partitions) {
             return new SyncGroupGroupAssignment {
                 MemberId = memberId,
                 MemberAssignment = new SyncGroupMemberAssignment {
@@ -255,7 +257,7 @@ namespace Chuye.Kafka.Internal {
                     }
                 };
             }
-        }
+        }*/
 
         public ListGroupsResponse ListGroups() {
             //var brokerUri = _client.ExistingBrokerDispatcher.SequentialSelect();
