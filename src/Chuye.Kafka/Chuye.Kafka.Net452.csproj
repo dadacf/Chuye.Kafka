@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Internal\Client.cs" />
+    <Compile Include="Internal\ConsumerOffsetRecorder.cs" />
     <Compile Include="Internal\Coordinator.cs" />
     <Compile Include="Internal\CoordinatorState.cs" />
     <Compile Include="Internal\Enumerable`.cs" />

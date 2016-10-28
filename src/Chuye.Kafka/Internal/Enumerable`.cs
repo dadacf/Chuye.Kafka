@@ -7,22 +7,25 @@ using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Internal {
     class Enumerable<T> : IEnumerable<T> {
-        private readonly IList<T> _array;
+        private readonly T[] _array;
         private readonly Enumerator _enumerator;
 
+        protected IReadOnlyList<T> List {
+            get { return _array; }
+        }
+
         public Int32 Position {
-            get {
-                return _enumerator.Position;
-            }
+            get { return _enumerator.Position; }
         }
 
         public Int32 Count {
-            get {
-                return _array.Count;
-            }
+            get { return _array.Length; }
         }
 
         public Enumerable(T[] array) {
+            if (array == null) {
+                throw new ArgumentNullException("array");
+            }
             _array = array;
             _enumerator = new Enumerator(_array);
         }
@@ -35,7 +38,7 @@ namespace Chuye.Kafka.Internal {
             return _enumerator;
         }
 
-        public Boolean Next(out T item) {
+        public Boolean NextOne(out T item) {
             if (_enumerator.MoveNext()) {
                 item = _enumerator.Current;
                 return true;
@@ -46,7 +49,7 @@ namespace Chuye.Kafka.Internal {
 
         public IEnumerable<T> NextAll() {
             T item;
-            while (Next(out item)) {
+            while (NextOne(out item)) {
                 yield return item;
             }
         }

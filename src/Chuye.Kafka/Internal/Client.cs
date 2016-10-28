@@ -65,8 +65,7 @@ namespace Chuye.Kafka.Internal {
         internal Task<Response> SubmitRequestAsync(Broker broker, Request req) {
             return SubmitRequestAsync(broker, req);
         }
-
-
+        
         internal async Task<Response> SubmitRequestAsync(Uri uri, Request req) {
             var reqEvent = new RequestSendingEventArgs(uri, req);
             OnRequestSending(reqEvent);
