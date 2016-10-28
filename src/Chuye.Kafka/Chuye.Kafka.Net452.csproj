@@ -48,6 +48,7 @@
     <Compile Include="Internal\KnownBrokerDispatcher.cs" />
     <Compile Include="Internal\DelayedMessageQueue.cs" />
     <Compile Include="Internal\KnownPartitionDispatcher.cs" />
+    <Compile Include="Internal\MessageChunk.cs" />
     <Compile Include="Internal\ResponseReceivedEventArg.cs" />
     <Compile Include="Internal\RequestSendingEventArgs.cs" />
     <Compile Include="Internal\SocketPool.cs" />

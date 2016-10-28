@@ -127,10 +127,10 @@ namespace Chuye.Kafka.Internal {
             return Produce(topic, partition, messages.Select(x => (Message)x).ToArray());
         }
 
-        public IEnumerable<OffsetMessage> Fetch(String topic, Int32 partition, Int64 fetchOffset) {
+        public IEnumerable<OffsetMessage> Fetch(String topic, Int32 partition, Int64 fetchOffset, Int32 maxBytes = 1024 * 16, Int32 maxWaitTime = 1000) {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
-            var request = new FetchRequest(topic, partition, fetchOffset);
+            var request = new FetchRequest(topic, partition, fetchOffset, maxBytes, maxWaitTime);
             var response = (FetchResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions.SelectMany(x => x.MessageBodys)

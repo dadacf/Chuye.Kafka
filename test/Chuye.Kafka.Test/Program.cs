@@ -16,12 +16,14 @@ namespace Chuye.Kafka.Test {
             //SendRequest();
 
             var cts = new CancellationTokenSource();
-            StartConsume(cts.Token);
+            Task.Run(() => StartConsume(cts.Token));
 
             Console.WriteLine("Press <ENTER> to exit");
             Console.ReadLine();
 
             cts.Cancel();
+
+            Console.ReadLine();
         }
 
         static void DeserializeFrom() {
@@ -49,11 +51,12 @@ namespace Chuye.Kafka.Test {
                 e.Uri = new Uri(e.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
             };
 
-            var consumer = new Consumer(option, "demoGroupId", "demoTopic2");
+            var consumer = new Consumer(option, "demoGroupId", "demoTopic3");
             consumer.Initialize();
 
             foreach (var msg in consumer.Fetch(token)) {
-                //Console.WriteLine(msg);
+                Console.WriteLine(msg);
+                //Thread.Sleep(10);
             };
         }
     }
