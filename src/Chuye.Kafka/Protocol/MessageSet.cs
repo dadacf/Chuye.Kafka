@@ -46,7 +46,7 @@ namespace Chuye.Kafka.Protocol {
                     yield return item;
                 }
                 else if (item.Message.Attributes == MessageCodec.Gzip) {
-                    var buffer = GZip.Decompress(item.Message.Value);
+                    var buffer = Compress.GZip.Decompress(item.Message.Value);
                     using (var stream = new MemoryStream(buffer))
                     using (var reader = new KafkaReader(stream)) {
                         throw new NotImplementedException();
@@ -82,7 +82,7 @@ namespace Chuye.Kafka.Protocol {
                     item.SaveTo(writer2);
                 }
                 var messageBuffer = stream.ToArray();
-                var compressedMessageBuffer = GZip.Compress(messageBuffer, 0, messageBuffer.Length);
+                var compressedMessageBuffer = Compress.GZip.Compress(messageBuffer, 0, messageBuffer.Length);
 
                 Items = new[] {
                     new MessageSetDetail {

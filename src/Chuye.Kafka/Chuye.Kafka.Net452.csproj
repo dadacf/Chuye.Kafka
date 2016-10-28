@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Internal\Client.cs" />
+    <Compile Include="Serialization\Compress.cs" />
     <Compile Include="Internal\ConsumerConfig.cs" />
     <Compile Include="Internal\ConsumerOffsetRecorder.cs" />
     <Compile Include="Internal\Coordinator.cs" />
@@ -98,7 +99,6 @@
     <Compile Include="Protocol\Request.cs" />
     <Compile Include="Protocol\Response.cs" />
     <Compile Include="Serialization\CRC32.cs" />
-    <Compile Include="Serialization\GZip.cs" />
     <Compile Include="Serialization\IKafkaReadable.cs" />
     <Compile Include="Serialization\IKafkaWriteable.cs" />
     <Compile Include="Serialization\KafkaCrc32Writer.cs" />
