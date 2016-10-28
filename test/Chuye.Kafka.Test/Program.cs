@@ -15,13 +15,13 @@ namespace Chuye.Kafka.Test {
             Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
             //SendRequest();
 
-            var cts = new CancellationTokenSource();
-            StartConsume(cts.Token);
+            SendMessage();
 
-            Console.WriteLine("Press <ENTER> to exit");
-            Console.ReadLine();
-
-            cts.Cancel();
+            //var cts = new CancellationTokenSource();
+            //StartConsume(cts.Token);
+            //Console.WriteLine("Press <ENTER> to exit");
+            //Console.ReadLine();
+            //cts.Cancel();
         }
 
         static void DeserializeFrom() {
@@ -55,6 +55,18 @@ namespace Chuye.Kafka.Test {
             foreach (var msg in consumer.Fetch(token)) {
                 //Console.WriteLine(msg);
             };
+        }
+
+        static void SendMessage() {
+            var option = new Option(new Uri("http://ubuntu-16:9094"), new Uri("http://ubuntu-16:9093"));
+            option.GetSharedClient().RequestSending += (_, e) => {
+                e.Uri = new Uri(e.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
+            };
+
+            var producer = new ThrottledProducer(option);
+            var list = Enumerable.Range(0, 1000).Select(x => $"{Guid.NewGuid().ToString("n")}#{x}");
+            producer.Send("demoTopic1", list.ToArray());
+            using (producer as IDisposable) { };
         }
     }
 }

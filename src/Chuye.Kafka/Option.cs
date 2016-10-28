@@ -22,12 +22,15 @@ namespace Chuye.Kafka {
             get { return _property; }
         }
 
+        internal ProducerConfig ProducerConfig { get; set; }
+
         public Option(params Uri[] brokerUris) {
             if (brokerUris == null || brokerUris.Length == 0) {
                 throw new ArgumentOutOfRangeException("brokerUris");
             }
-            _brokerUris = brokerUris;
-            _property = new NameValueCollection();
+            _brokerUris    = brokerUris;
+            _property      = new NameValueCollection();
+            ProducerConfig = ProducerConfig.Default;
         }
 
         public ConnectionFactory GetSharedConnections() {
