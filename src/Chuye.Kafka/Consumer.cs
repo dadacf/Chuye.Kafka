@@ -11,8 +11,6 @@ using Chuye.Kafka.Internal;
 namespace Chuye.Kafka {
     public class Consumer {
         private readonly Client _client;
-        private readonly String _groupId;
-        private readonly String _topic;
         private readonly Coordinator _coordinator;
         private readonly KnownPartitionDispatcher _partitionDispatcher;
         private MessageChunk _messages;
@@ -23,13 +21,8 @@ namespace Chuye.Kafka {
             get { return _client; }
         }
 
-        public String GroupId {
-            get { return _groupId; }
-        }
-
-        public String Topic {
-            get { return _topic; }
-        }
+        public String GroupId { get; private set; }
+        public String Topic { get; private set; }
 
         public CoordinatorState CoordinatorState {
             get {
@@ -43,71 +36,65 @@ namespace Chuye.Kafka {
         public Consumer(Option option, String groupId, String topic) {
             _client                    = option.GetSharedClient();
             _config                    = option.ConsumerConfig;
-            _groupId                   = groupId;
-            _topic                     = topic;
+            GroupId                    = groupId;
+            Topic                      = topic;
+            _partitionDispatcher       = new KnownPartitionDispatcher();
             _coordinator               = new Coordinator(option, groupId);
             _coordinator.StateChanged += Coordinator_StateChanged;
-            _partitionDispatcher       = new KnownPartitionDispatcher();
-        }
-
-        public void Initialize() {
-            _coordinator.Topics = new[] { _topic };
-            _coordinator.RebalanceAsync();
-            WaitForRebalace(20, 100);
         }
 
         private void Coordinator_StateChanged(Object sender, CoordinatorStateChangedEventArgs e) {
             if (e.State == CoordinatorState.Stable) {
                 if (_offsets != null) {
-                    _offsets.Proceed(_messages.Partition, _messages.Offset);
+                    _offsets.MoveForward(_messages.Partition);
                 }
-
-                var partitionAssigned = _coordinator.GetPartitionAssigned(_topic);
+                var partitionAssigned = _coordinator.GetPartitionAssigned(Topic);
                 _partitionDispatcher.ChangeKnown(partitionAssigned);
                 _offsets = new ConsumerOffsetRecorder(this, partitionAssigned);
             }
         }
 
-        private void WaitForRebalace(Int32 retryCount, Int32 retryTimtout) {
+        public void Initialize() {
+            _coordinator.Topics = new[] { Topic };
+            _coordinator.RebalanceAsync();
+        }
+
+        private void BlockForRebalace(Int32 retryTimtout) {
+            var retryInterval = 100;
+            var retryCount = retryTimtout / retryInterval;
             var retryUsed = 0;
             while (++retryUsed < retryCount && _coordinator.State != CoordinatorState.Stable) {
-                Thread.Sleep(retryTimtout);
+                Thread.Sleep(retryInterval);
             }
         }
 
         private void EnsureMessageFetched() {
-            var needFetch = false;
+            var maxWaitTime = _config.FetchMilliseconds;
             if (_messages == null) {
-                needFetch = true;
+                maxWaitTime = _config.FetchMilliseconds / 2;
+            }
+            else if (_messages.Count == 0 || _messages.Position == _messages.Count - 1) {
+                maxWaitTime = _config.FetchMilliseconds * 2;
             }
             else {
-                var executeCommit = false;
-                if (_messages.Count == 0) {
-                    needFetch = true;
-                }
-                else if (_messages.Position == _messages.Count - 1) {
-                    needFetch = true;
-                    executeCommit = true;
-                }
-                if (executeCommit) {
-                    _offsets.Proceed(_messages.Partition, _messages.Offset, executeCommit);
-                }
-            }
-
-            if (!needFetch) {
                 return;
             }
+
             if (_coordinator.State != CoordinatorState.Stable) {
                 Trace.TraceWarning("{0:HH:mm:ss.fff} [{1:d2}] #6 Rebalance {2}, fetch interrupted",
                     DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinator.State);
-                return;
+                BlockForRebalace(_config.RebalaceBlockMilliseconds);
+            }
+            if (_coordinator.State != CoordinatorState.Stable) {
+                throw new InvalidOperationException("Load balancing is still not complete");
             }
 
             var partition = _partitionDispatcher.SelectParition();
-            var offset = _offsets.GetSavedOffset(partition);
+            var offset = _offsets.GetCurrentOffset(partition);
+            var maxBytes = _config.FetchBytes;
             Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Fetch group '{2}', topic '{3}'({4}), offset {5}",
-                DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _topic, partition, offset);
-            var messages = _client.Fetch(_topic, partition, offset).ToArray();
+                DateTime.Now, Thread.CurrentThread.ManagedThreadId, GroupId, Topic, partition, offset);
+            var messages = _client.Fetch(Topic, partition, offset, maxBytes: maxBytes, maxWaitTime: maxWaitTime).ToArray();
             _messages = new MessageChunk(messages, partition);
         }
 
@@ -120,31 +107,18 @@ namespace Chuye.Kafka {
                 EnsureMessageFetched();
                 foreach (var item in _messages.NextAll()) {
                     if (token.IsCancellationRequested) {
+                        _offsets.MoveForward(_messages.Partition);
                         break;
                     }
                     yield return item;
-                    _offsets.Proceed(_messages.Partition, item.Offset);
+                    _offsets.MoveForward(_messages.Partition, item.Offset);
+                }
+                if (_messages.Count > 0) {
+                    _offsets.MoveForward(_messages.Partition, _messages.EndingOffset, true);
                 }
             }
-        }
-
-        class MessageChunk : Enumerable<OffsetMessage> {
-            public Int32 Partition { get; private set; }
-            public Int64 Offset {
-                get {
-                    if (base.List == null || base.List.Count == 0) {
-                        throw new ArgumentOutOfRangeException();
-                    }
-                    return base.List[0].Offset + base.Position;
-                }
-            }
-
-            public MessageChunk(OffsetMessage[] array, Int32 partition)
-                : base(array) {
-                if (partition < 0) {
-                    throw new ArgumentOutOfRangeException("partition");
-                }
-                Partition = partition;
+            if (_messages.Count > 0) {
+                _offsets.MoveForward(_messages.Partition);
             }
         }
     }

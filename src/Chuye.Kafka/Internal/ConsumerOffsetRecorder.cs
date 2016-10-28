@@ -27,16 +27,24 @@ namespace Chuye.Kafka.Internal {
             _lastSubmit     = DateTime.UtcNow;
         }
 
-        public void Proceed(Int32 partition, Int64 offset) {
-            Proceed(partition, offset, false);
+        public void MoveForward(Int32 partition) {
+            var index = Array.IndexOf(_partitions, partition);
+            if (_offsetSubmited[index] < _offsetSaved[index]) {
+                OffsetCommit(partition, _offsetSaved[index]);
+                _offsetSubmited[index] = _offsetSaved[index];
+            }
         }
 
-        public void Proceed(Int32 partition, Int64 offset, Boolean forceSubmit) {
+        public void MoveForward(Int32 partition, Int64 offset) {
+            MoveForward(partition, offset, false);
+        }
+
+        public void MoveForward(Int32 partition, Int64 offset, Boolean forceSubmit) {
             var index = Array.IndexOf(_partitions, partition);
             if (_offsetSaved[index] > offset + 1) {
                 throw new ArgumentOutOfRangeException("offset");
             }
-            if (_offsetSaved[index] == offset + 1) {
+            if (_offsetSubmited[index] == offset + 1) {
                 return;
             }
 
@@ -56,7 +64,7 @@ namespace Chuye.Kafka.Internal {
             _client.OffsetCommit(_topic, partition, _groupId, offset);
         }
 
-        public Int64 GetSavedOffset(Int32 partition) {
+        public Int64 GetCurrentOffset(Int32 partition) {
             var index = Array.IndexOf(_partitions, partition);
             var offsetSaved = _offsetSaved[index];
             if (offsetSaved == -1L) {

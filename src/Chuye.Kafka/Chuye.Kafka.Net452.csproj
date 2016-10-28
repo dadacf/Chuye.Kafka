@@ -47,6 +47,7 @@
     <Compile Include="Internal\CoordinatorState.cs" />
     <Compile Include="Internal\Enumerable`.cs" />
     <Compile Include="Internal\KnownBrokerDispatcher.cs" />
+    <Compile Include="Internal\MessageChunk.cs" />
     <Compile Include="Internal\ThrottleMessageQueue.cs" />
     <Compile Include="Internal\KnownPartitionDispatcher.cs" />
     <Compile Include="Internal\ProducerConfig.cs" />

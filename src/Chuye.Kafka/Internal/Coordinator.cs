@@ -196,25 +196,6 @@ namespace Chuye.Kafka.Internal {
                 }
             }
         }
-
-        /*private IList<SyncGroupGroupAssignment> AssigningTopicPartitions(IList<String> topics) {
-            var assignments = new List<SyncGroupGroupAssignment>(topics.Count * _members.Length);
-            foreach (var topic in topics) {
-                var partitions = _partitionDispatcher.SelectPartitions(topic)
-                    .Select(x => x.Partition).ToArray();
-                if (_members.Length == 1) {
-                    var assignment = AssignToOne(_members[0].MemberId, topic, partitions);
-                    assignments.Add(assignment);
-                }
-                else {
-                    var members = _members.Select(x => x.MemberId).ToArray();
-                    var groupAssignment = AssignByDivide(members, topic, partitions);
-                    assignments.AddRange(groupAssignment);
-                }
-            }
-            return assignments;
-        }*/
-
         private void EnsureCoordinateBrokerExsiting() {
             if (_coordinateBroker != null) {
                 return;
@@ -225,40 +206,7 @@ namespace Chuye.Kafka.Internal {
                     DateTime.Now, Thread.CurrentThread.ManagedThreadId, _coordinateBroker.ToUri().AbsoluteUri, _groupId);
             }
         }
-
-        /*private SyncGroupGroupAssignment AssignToOne(String memberId, String topic, Int32[] partitions) {
-            return new SyncGroupGroupAssignment {
-                MemberId = memberId,
-                MemberAssignment = new SyncGroupMemberAssignment {
-                    PartitionAssignments = new[] {
-                        new SyncGroupPartitionAssignment {
-                            Topic      = topic,
-                            Partitions = partitions
-                        }
-                    }
-                }
-            };
-        }
-
-        private IEnumerable<SyncGroupGroupAssignment> AssignByDivide(String[] members, String topic, Int32[] partitions) {
-            var assignedMemberAndPartitions = partitions.Select((partition, index) =>
-                    new { partition, member = members[index % members.Length] })
-                .GroupBy(x => x.member);
-            foreach (var memberAndPartitions in assignedMemberAndPartitions) {
-                yield return new SyncGroupGroupAssignment {
-                    MemberId = memberAndPartitions.Key,
-                    MemberAssignment = new SyncGroupMemberAssignment {
-                        PartitionAssignments = new[] {
-                            new SyncGroupPartitionAssignment {
-                                Topic      = topic,
-                                Partitions = memberAndPartitions.Select(x => x.partition).ToArray()
-                            }
-                        }
-                    }
-                };
-            }
-        }*/
-
+        
         public ListGroupsResponse ListGroups() {
             //var brokerUri = _client.ExistingBrokerDispatcher.SequentialSelect();
             EnsureCoordinateBrokerExsiting();

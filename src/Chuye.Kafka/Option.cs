@@ -31,6 +31,7 @@ namespace Chuye.Kafka {
             _brokerUris    = brokerUris;
             _property      = new NameValueCollection();
             ProducerConfig = ProducerConfig.Default;
+            ConsumerConfig = ConsumerConfig.Default;
         }
 
         public ConnectionFactory GetSharedConnections() {
