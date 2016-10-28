@@ -6,17 +6,17 @@ using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Internal {
     class DelayedMessageQueue {
-        private const Int32 Limit = 10;
+        private const Int32 Limit = 20;
         private const Int32 MaxIntervalMilliseconds = 1000;
         private DateTime _createTime;
         private readonly Queue<Message> _queue;
         private readonly Object _sync;
         private readonly TopicPartition _topicPartition;
-        private readonly Client _client;
+        private readonly Producer _producer;
 
-        public DelayedMessageQueue(TopicPartition topicPartition, Client client) {
+        public DelayedMessageQueue(TopicPartition topicPartition, Producer producer) {
             _topicPartition = topicPartition;
-            _client         = client;
+            _producer       = producer;
             _queue          = new Queue<Message>();
             _sync           = new Object();
             _createTime     = DateTime.UtcNow;
@@ -44,6 +44,7 @@ namespace Chuye.Kafka.Internal {
                     list.Add(_queue.Dequeue());
                     if (list.Count >= Limit) {
                         SendBulk(list);
+                        list.Clear();
                     }
                 }
                 if (list.Count > 0) {
@@ -53,7 +54,7 @@ namespace Chuye.Kafka.Internal {
         }
 
         private void SendBulk(IList<Message> messages) {
-            _client.Produce(_topicPartition.Name, _topicPartition.Partition, messages);
+            _producer.Send(_topicPartition.Name, _topicPartition.Partition, messages);
         }
     }
 }
