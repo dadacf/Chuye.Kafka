@@ -5,6 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Internal {
-    class ConsumerConfig {
+    public struct ConsumerConfig {
+        public static ConsumerConfig Default = new ConsumerConfig(1000);
+
+        public Int32 FetchMilliseconds;
+
+        public ConsumerConfig(Int32 fetchMilliseconds) {
+            FetchMilliseconds = fetchMilliseconds;
+        }
     }
 }

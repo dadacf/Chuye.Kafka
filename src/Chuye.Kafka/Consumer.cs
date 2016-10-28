@@ -17,6 +17,7 @@ namespace Chuye.Kafka {
         private readonly KnownPartitionDispatcher _partitionDispatcher;
         private MessageChunk _messages;
         private ConsumerOffsetRecorder _offsets;
+        private ConsumerConfig _config;
 
         internal Client Client {
             get { return _client; }
@@ -41,6 +42,7 @@ namespace Chuye.Kafka {
 
         public Consumer(Option option, String groupId, String topic) {
             _client                    = option.GetSharedClient();
+            _config                    = option.ConsumerConfig;
             _groupId                   = groupId;
             _topic                     = topic;
             _coordinator               = new Coordinator(option, groupId);

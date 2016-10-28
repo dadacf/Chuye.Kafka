@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Internal {
-    struct ProducerConfig {
+    public struct ProducerConfig {
         public static ProducerConfig Default = new ProducerConfig(50, 3000);
 
         public Int32 ThrottleSize;
