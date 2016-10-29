@@ -12,27 +12,42 @@ namespace Chuye.Kafka {
         private Uri[] _brokerUris;
         private ConnectionFactory _connectionFactory;
         private Client _client;
-        private NameValueCollection _property;
-
+#if NET40
+        public IList<Uri> BrokerUris {
+#else
         public IReadOnlyList<Uri> BrokerUris {
+#endif
             get { return _brokerUris; }
-        }
-
-        public NameValueCollection Property {
-            get { return _property; }
         }
 
         public ProducerConfig ProducerConfig { get; set; }
         public ConsumerConfig ConsumerConfig { get; set; }
+        public CoordinatorConfig CoordinatorConfig { get; set; }
+
+        public Option(String brokerUrls) {
+            if (String.IsNullOrWhiteSpace(brokerUrls)) {
+                throw new ArgumentOutOfRangeException("brokerUris");
+            }
+            var brokerUris = brokerUrls.Split(',')
+                .Select(x => new Uri(x.StartsWith("http://") ? x : "http://" + x))
+                .ToArray();
+            if (brokerUris.Length == 0) {
+                throw new ArgumentOutOfRangeException("brokerUris");
+            }
+            _brokerUris       = brokerUris;
+            ProducerConfig    = ProducerConfig.Default;
+            ConsumerConfig    = ConsumerConfig.Default;
+            CoordinatorConfig = CoordinatorConfig.Default;
+        }
 
         public Option(params Uri[] brokerUris) {
             if (brokerUris == null || brokerUris.Length == 0) {
                 throw new ArgumentOutOfRangeException("brokerUris");
             }
-            _brokerUris    = brokerUris;
-            _property      = new NameValueCollection();
+            _brokerUris = brokerUris;
             ProducerConfig = ProducerConfig.Default;
             ConsumerConfig = ConsumerConfig.Default;
+            CoordinatorConfig = CoordinatorConfig.Default;
         }
 
         public ConnectionFactory GetSharedConnections() {

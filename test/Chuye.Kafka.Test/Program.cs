@@ -20,7 +20,8 @@ namespace Chuye.Kafka.Test {
                 //e.Uri = new Uri(e.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
             };
 
-            DeserializeFrom();
+            StartConsumeReadLine();
+            //DeserializeFrom();
             //SendMessage();
             //StartConsumeAndBlock();
         }

@@ -16,5 +16,5 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("c8986426-f8ad-4c38-8aa8-0a2af77e67e5")]
+[assembly: Guid("bf67cea9-ad71-40b1-9583-01700d10a360")]
 [assembly: InternalsVisibleTo("Chuye.Kafka.Test")]

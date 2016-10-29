@@ -13,11 +13,20 @@ namespace Chuye.Kafka.Internal {
         private readonly ReaderWriterLockSlim _sync;
         private readonly Client _client;
 
+#if NET40
+        public IList<TopicPartition> Topics {
+#else
         public IReadOnlyList<TopicPartition> Topics {
+#endif
             get { return _topics; }
         }
 
+
+#if NET40
+        public IList<Broker> Brokers {
+#else
         public IReadOnlyList<Broker> Brokers {
+#endif
             get { return _brokers; }
         }
 

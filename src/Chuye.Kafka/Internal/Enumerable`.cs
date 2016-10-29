@@ -26,8 +26,13 @@ namespace Chuye.Kafka.Internal {
         private readonly T[] _collection;
         private readonly Enumerator _enumerator;
 
+#if NET40
+        protected IList<T> List {
+#else
         protected IReadOnlyList<T> List {
+#endif
             get { return _collection; }
+
         }
 
         public Int32 Position {
