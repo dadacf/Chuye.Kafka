@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{53149E6B-88CB-4E06-B5BB-2816F38389A2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4E0E51D9-3B81-4914-86A1-237028369E88}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{40771CFB-C5A0-4F65-AC0A-587372855081}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chuye.Kafka.dotnet452", "src\Chuye.Kafka\Chuye.Kafka.dotnet452.csproj", "{898D0377-63D3-4638-9C72-28E1F9A051B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{898D0377-63D3-4638-9C72-28E1F9A051B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{898D0377-63D3-4638-9C72-28E1F9A051B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{898D0377-63D3-4638-9C72-28E1F9A051B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{898D0377-63D3-4638-9C72-28E1F9A051B6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{898D0377-63D3-4638-9C72-28E1F9A051B6} = {53149E6B-88CB-4E06-B5BB-2816F38389A2}
+	EndGlobalSection
+EndGlobal

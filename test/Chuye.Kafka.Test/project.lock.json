@@ -1,0 +1,213 @@
+{
+  "locked": false,
+  "version": 2,
+  "targets": {
+    ".NETFramework,Version=v4.5.2": {
+      "Chuye.Kafka/1.0.0-beta": {
+        "type": "package",
+        "compile": {
+          "lib/net45/Chuye.Kafka.dll": {}
+        },
+        "runtime": {
+          "lib/net45/Chuye.Kafka.dll": {}
+        }
+      },
+      "CompareNETObjects/3.5.0": {
+        "type": "package",
+        "compile": {
+          "lib/net452/KellermanSoftware.Compare-NET-Objects.dll": {}
+        },
+        "runtime": {
+          "lib/net452/KellermanSoftware.Compare-NET-Objects.dll": {}
+        }
+      },
+      "xunit/2.2.0-beta3-build3402": {
+        "type": "package",
+        "dependencies": {
+          "xunit.assert": "[2.2.0-beta3-build3402]",
+          "xunit.core": "[2.2.0-beta3-build3402]"
+        }
+      },
+      "xunit.abstractions/2.0.1": {
+        "type": "package",
+        "compile": {
+          "lib/net35/xunit.abstractions.dll": {}
+        },
+        "runtime": {
+          "lib/net35/xunit.abstractions.dll": {}
+        }
+      },
+      "xunit.assert/2.2.0-beta3-build3402": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard1.0/xunit.assert.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard1.0/xunit.assert.dll": {}
+        }
+      },
+      "xunit.core/2.2.0-beta3-build3402": {
+        "type": "package",
+        "dependencies": {
+          "xunit.extensibility.core": "[2.2.0-beta3-build3402]",
+          "xunit.extensibility.execution": "[2.2.0-beta3-build3402]"
+        }
+      },
+      "xunit.extensibility.core/2.2.0-beta3-build3402": {
+        "type": "package",
+        "dependencies": {
+          "xunit.abstractions": "2.0.1"
+        },
+        "compile": {
+          "lib/net45/xunit.core.dll": {}
+        },
+        "runtime": {
+          "lib/net45/xunit.core.dll": {}
+        }
+      },
+      "xunit.extensibility.execution/2.2.0-beta3-build3402": {
+        "type": "package",
+        "dependencies": {
+          "xunit.extensibility.core": "[2.2.0-beta3-build3402]"
+        },
+        "compile": {
+          "lib/net45/xunit.execution.desktop.dll": {}
+        },
+        "runtime": {
+          "lib/net45/xunit.execution.desktop.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Chuye.Kafka/1.0.0-beta": {
+      "sha512": "7sB2VJJDtVybpdigniJeZRAF2sYYXpF7kNPQcwH+jAvOCzzi0W2hzb2rlRGEjPx7Su3mCUUHZwMV33LU2zevNw==",
+      "type": "package",
+      "path": "Chuye.Kafka/1.0.0-beta",
+      "files": [
+        "Chuye.Kafka.1.0.0-beta.nupkg.sha512",
+        "Chuye.Kafka.nuspec",
+        "lib/net45/Chuye.Kafka.dll",
+        "lib/netstandard1.6/Chuye.Kafka.dll"
+      ]
+    },
+    "CompareNETObjects/3.5.0": {
+      "sha512": "+pLH9oCVbuQeCqgL/lFdPLks1K6MBDfU+TkNVZB+F1I4NhUe2hKQyL6TetNqc/2CKmHh364+Bcj/JRYaLV0h1A==",
+      "type": "package",
+      "path": "CompareNETObjects/3.5.0",
+      "files": [
+        "CompareNETObjects.3.5.0.nupkg.sha512",
+        "CompareNETObjects.nuspec",
+        "lib/net35/KellermanSoftware.Compare-NET-Objects.dll",
+        "lib/net35/KellermanSoftware.Compare-NET-Objects.xml",
+        "lib/net40/KellermanSoftware.Compare-NET-Objects.dll",
+        "lib/net40/KellermanSoftware.Compare-NET-Objects.xml",
+        "lib/net45/KellermanSoftware.Compare-NET-Objects.dll",
+        "lib/net45/KellermanSoftware.Compare-NET-Objects.xml",
+        "lib/net451/KellermanSoftware.Compare-NET-Objects.dll",
+        "lib/net451/KellermanSoftware.Compare-NET-Objects.xml",
+        "lib/net452/KellermanSoftware.Compare-NET-Objects.dll",
+        "lib/net452/KellermanSoftware.Compare-NET-Objects.xml",
+        "lib/net46/KellermanSoftware.Compare-NET-Objects.dll",
+        "lib/net46/KellermanSoftware.Compare-NET-Objects.xml",
+        "lib/portable-net4+sl5+wp8+win8/KellermanSoftware.Compare-NET-Objects-Portable.dll",
+        "lib/portable-net4+sl5+wp8+win8/KellermanSoftware.Compare-NET-Objects-Portable.xml",
+        "readme.txt"
+      ]
+    },
+    "xunit/2.2.0-beta3-build3402": {
+      "sha512": "jFyrGgYsFvmRoCyRRZ2Z12FuTsdICVI6stjpU+eVEF7a/eLiBYPqUAUpm03JUMp5/uGNic55HctTdboSZS/qpA==",
+      "type": "package",
+      "path": "xunit/2.2.0-beta3-build3402",
+      "files": [
+        "xunit.2.2.0-beta3-build3402.nupkg.sha512",
+        "xunit.nuspec"
+      ]
+    },
+    "xunit.abstractions/2.0.1": {
+      "sha512": "bDm/zdG5rnRDsobKuKwrvL4HccBdC0uvT12be6fG12P3d1U7u9Wkvfoq/PM2GeyIeb0Dtcmm/7k2oaawiqQ2Dg==",
+      "type": "package",
+      "path": "xunit.abstractions/2.0.1",
+      "files": [
+        "lib/net35/xunit.abstractions.dll",
+        "lib/net35/xunit.abstractions.xml",
+        "lib/netstandard1.0/xunit.abstractions.dll",
+        "lib/netstandard1.0/xunit.abstractions.xml",
+        "xunit.abstractions.2.0.1.nupkg.sha512",
+        "xunit.abstractions.nuspec"
+      ]
+    },
+    "xunit.assert/2.2.0-beta3-build3402": {
+      "sha512": "Mykwh2Onk+/XTWArXMejVqWOn8PyRCbiUHUmytXCX/Y/Ckzic4xSGPOESc6fnvetm2SFY0BS8B5PxW/tO5ntmQ==",
+      "type": "package",
+      "path": "xunit.assert/2.2.0-beta3-build3402",
+      "files": [
+        "lib/netstandard1.0/xunit.assert.dll",
+        "lib/netstandard1.0/xunit.assert.pdb",
+        "lib/netstandard1.0/xunit.assert.xml",
+        "xunit.assert.2.2.0-beta3-build3402.nupkg.sha512",
+        "xunit.assert.nuspec"
+      ]
+    },
+    "xunit.core/2.2.0-beta3-build3402": {
+      "sha512": "MqBMYJTMIMGsnwhpFfsfs8io2sSxLuUW41a8QA+ZBfgr97vsttsdrVojTZAOEZZvS2Y9LqHuaPb3L8sT2x63QQ==",
+      "type": "package",
+      "path": "xunit.core/2.2.0-beta3-build3402",
+      "files": [
+        "build/_desktop/xunit.execution.desktop.dll",
+        "build/netstandard1.0/_._",
+        "build/uap10.0/xunit.core.props",
+        "build/win81/xunit.core.props",
+        "build/wpa81/xunit.core.props",
+        "xunit.core.2.2.0-beta3-build3402.nupkg.sha512",
+        "xunit.core.nuspec"
+      ]
+    },
+    "xunit.extensibility.core/2.2.0-beta3-build3402": {
+      "sha512": "scgzAiqYqMBfJXwfH7qFcHdj+ZMry7xCVM5WnN/7eTJvXJCgQDxmfH29RE9sm86490KaDWpbOAc93+vjcQSf6A==",
+      "type": "package",
+      "path": "xunit.extensibility.core/2.2.0-beta3-build3402",
+      "files": [
+        "lib/net45/xunit.core.dll",
+        "lib/net45/xunit.core.dll.tdnet",
+        "lib/net45/xunit.core.pdb",
+        "lib/net45/xunit.core.xml",
+        "lib/net45/xunit.runner.tdnet.dll",
+        "lib/net45/xunit.runner.utility.desktop.dll",
+        "lib/netstandard1.0/xunit.core.dll",
+        "lib/netstandard1.0/xunit.core.dll.tdnet",
+        "lib/netstandard1.0/xunit.core.pdb",
+        "lib/netstandard1.0/xunit.core.xml",
+        "lib/netstandard1.0/xunit.runner.tdnet.dll",
+        "lib/netstandard1.0/xunit.runner.utility.desktop.dll",
+        "xunit.extensibility.core.2.2.0-beta3-build3402.nupkg.sha512",
+        "xunit.extensibility.core.nuspec"
+      ]
+    },
+    "xunit.extensibility.execution/2.2.0-beta3-build3402": {
+      "sha512": "6fOcX1VwNv0aa7nlSH4fVMUjr9YlnLaC43Ztn7Xi7WdsvLbg8358AxLd4A1aYrXvUQsTnNEmm4oipXS8aeWKHA==",
+      "type": "package",
+      "path": "xunit.extensibility.execution/2.2.0-beta3-build3402",
+      "files": [
+        "lib/net45/xunit.execution.desktop.dll",
+        "lib/net45/xunit.execution.desktop.pdb",
+        "lib/net45/xunit.execution.desktop.xml",
+        "lib/netstandard1.0/xunit.execution.dotnet.dll",
+        "lib/netstandard1.0/xunit.execution.dotnet.pdb",
+        "lib/netstandard1.0/xunit.execution.dotnet.xml",
+        "xunit.extensibility.execution.2.2.0-beta3-build3402.nupkg.sha512",
+        "xunit.extensibility.execution.nuspec"
+      ]
+    }
+  },
+  "projectFileDependencyGroups": {
+    "": [
+      "Chuye.Kafka >= 1.0.0-*",
+      "CompareNETObjects >= 3.5.0",
+      "xunit >= 2.2.0-beta3-build3402"
+    ],
+    ".NETFramework,Version=v4.5.2": []
+  },
+  "tools": {},
+  "projectFileToolGroups": {}
+}
