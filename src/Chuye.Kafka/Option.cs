@@ -24,13 +24,29 @@ namespace Chuye.Kafka {
         public ConsumerConfig ConsumerConfig { get; set; }
         public CoordinatorConfig CoordinatorConfig { get; set; }
 
-        public Option(params Uri[] brokerUris) {
-            if (brokerUris == null || brokerUris.Length == 0) {
+        public Option(String brokerUrls) {
+            if (String.IsNullOrWhiteSpace(brokerUrls)) {
+                throw new ArgumentOutOfRangeException("brokerUris");
+            }
+            var brokerUris = brokerUrls.Split(',')
+                .Select(x => new Uri(x.StartsWith("http://") ? x : "http://" + x))
+                .ToArray();
+            if (brokerUris.Length == 0) {
                 throw new ArgumentOutOfRangeException("brokerUris");
             }
             _brokerUris       = brokerUris;
             ProducerConfig    = ProducerConfig.Default;
             ConsumerConfig    = ConsumerConfig.Default;
+            CoordinatorConfig = CoordinatorConfig.Default;
+        }
+
+        public Option(params Uri[] brokerUris) {
+            if (brokerUris == null || brokerUris.Length == 0) {
+                throw new ArgumentOutOfRangeException("brokerUris");
+            }
+            _brokerUris = brokerUris;
+            ProducerConfig = ProducerConfig.Default;
+            ConsumerConfig = ConsumerConfig.Default;
             CoordinatorConfig = CoordinatorConfig.Default;
         }
 

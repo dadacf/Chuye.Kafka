@@ -1,5 +1,4 @@
 ﻿# Kafka driver implementation for .NET & Core
-----
 
 本类库基于 **kafka 0.9** 协议，包含的实现：
 
@@ -10,10 +9,12 @@
     * 自动进度保存的、可配置的的 offset 管理策略
 * 无第3方类库依赖
 
+----
+
 ## Usage
 
 ```bash
-Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
+Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
 ```
 
 对于 dotnet core,
@@ -24,24 +25,22 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
       "type": "platform",
       "version": "1.0.1"
     },
-    "Chuye.Kafka": "1.0.0-beta",
+    "Chuye.Kafka": "1.0.1-beta",
     "System.Diagnostics.TraceSource": "4.0.0"    
   },
 ```
 
-
-
-* Option  
+### Option
 接受 Broker 集群地址作为参数，它拥有最长的生命周期，在 web 项目中应单例维护
 
 ```c
-    var option = new Option(new Uri("http://ubuntu-16:9094"), new Uri("http://ubuntu-16:9093"));
+    var option = new Option("ubuntu-16:9094,ubuntu-16:9093");
 ```
 
-* Client  
-六大核心 API（Metadata/Send/Fetch/Offsets/Offset Commit/Offset Fetch）的实现者，除维护了 topic-partition-broker 元数据外是无状态的，不应被业务方直接调用；
+### Client
+核心 API（Metadata/Send/Fetch/Offsets/Offset Commit/Offset Fetch）的实现者，除维护了 topic-partition-broker 元数据外是无状态的，不应被业务方直接调用；
 
-* Producer  
+### Producer
 生产者的基本实现
 
 ```
@@ -51,8 +50,8 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
     producer.Send("demoTopic3", messages);
 ```
 
-* ThrottledProducer  
-内置队列的生产者实现，触及数量上限或 Dispose 时批量发送消息， 在 web 横在上中应以 PerRequest 生命周期维护
+### ThrottledProducer
+内置队列的生产者实现，每当触及数量上限及 Dispose() 时批量发送消息， 在 web 项目中应以 PerRequest 生命周期维护
 
 ```c
     using (var producer = new ThrottledProducer(option)) {
@@ -61,10 +60,10 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
     }
 ```
 
-> 注意：此模式下生产者可能不会立即发送消息，Dispose() 应该保证得到调用。
+> 注意：此模式下生产者可能不会立即发送消息，应该保证 Dispose() 得到调用。
 
-* Consumer  
-消费者的基本实现，Fetch() 是堵塞式的，接受 CancellationToken 作为参数实现了协作式取消
+### Consumer
+消费者的基本实现，堵塞式持续拉取消息，接受 CancellationToken 作为参数实现了协作式取消
 
 ```c
     var cts = new CancellationTokenSource();
@@ -75,7 +74,7 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
     }
 ```
 
-> 注意：此模式下消费者维护着消费进度，提交策略依赖了消费进度和时间间隔，CancellationTokenSource.Cancel()　是合理中止消费的方式。
+> 注意：此模式下消费者维护着消费进度，提交策略依赖了消费进度和时间间隔，应以 CancellationTokenSource.Cancel()　方式中止消费。
 
 ----
 
@@ -97,9 +96,9 @@ Q 客户端获取到 TopicMetadata 后将更新 Broker 目标而不使用初始�
 A Client 对象暴露了 RequestSending 与 ResponseReceived 事件，用户可以对它们进行拦截，在进行 Socket 抓包分析，示例:
 
 ```c
-    var option = new Option(new Uri("http://ubuntu-16:9094"), new Uri("http://ubuntu-16:9093"));
-    option.GetSharedClient().ResponseReceived += (sender, args) => {
-        args.Uri = new Uri(args.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
+    var option = new Option("ubuntu-16:9094,ubuntu-16:9093");
+    option.GetSharedClient().RequestSending += (sender, args) => {
+        args.Uri = new Uri("http://localhost:9000");
         // do stuff with args.Request
     };
     option.GetSharedClient().ResponseReceived += (sender, args) => {
@@ -150,7 +149,7 @@ Consumer A Information: 0 : 17:16:40.672 [10] #5 Heartbeat of member 'Chuye.Kafk
 
 ## More
 
-### 关于协议部分
+### 关于协议
 
 Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见[A Guide To The Kafka Protocol](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol#AGuideToTheKafkaProtocol-TheAPIs)。
 
