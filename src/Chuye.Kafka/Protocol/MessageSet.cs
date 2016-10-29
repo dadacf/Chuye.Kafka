@@ -11,30 +11,30 @@ namespace Chuye.Kafka.Protocol {
     //  Offset => int64
     //  MessageSize => int32    
     public class MessageSet : IKafkaReadable, IKafkaWriteable {
-        private readonly MessageBody _messageBody;
+        private readonly Int32 _messageSetSize;
 
         public MessageSetDetail[] Items { get; set; }
 
         public MessageSet() {
         }
 
-        public MessageSet(MessageBody messageBody) {
-            _messageBody = messageBody;
+        public MessageSet(Int32 messageSetSize) {
+            _messageSetSize = messageSetSize;
         }
-
+        
         public void FetchFrom(KafkaReader reader) {
-            if (_messageBody.MessageSetSize == 0 || _messageBody.HighwaterMarkOffset == 0) {
+            if (_messageSetSize == 0) {
                 Items = new MessageSetDetail[0];
                 return;
             }
             var previousPosition = reader.PositionProceeded;
             var items = new List<MessageSetDetail>(32);
-            while (reader.PositionProceeded - previousPosition < _messageBody.MessageSetSize) {
+            while (reader.PositionProceeded - previousPosition < _messageSetSize) {
                 var item = new MessageSetDetail();
                 item.FetchFrom(reader);
                 items.Add(item);
             }
-            Items = items.ToArray();
+            Items = Decompress(items).ToArray();
         }
 
         private IEnumerable<MessageSetDetail> Decompress(IEnumerable<MessageSetDetail> sets) {
@@ -46,11 +46,10 @@ namespace Chuye.Kafka.Protocol {
                     yield return item;
                 }
                 else if (item.Message.Attributes == MessageCodec.Gzip) {
-                    var buffer = GZip.Decompress(item.Message.Value);
+                    var buffer = Compress.GZip.Decompress(item.Message.Value);
                     using (var stream = new MemoryStream(buffer))
                     using (var reader = new KafkaReader(stream)) {
-                        throw new NotImplementedException();
-                        var set = new MessageSet();
+                        var set = new GZipMessageSet(_messageSetSize);
                         set.FetchFrom(reader);
                         foreach (var item2 in set.Items) {
                             yield return item2;
@@ -75,6 +74,13 @@ namespace Chuye.Kafka.Protocol {
     }
 
     public class GZipMessageSet : MessageSet {
+        public GZipMessageSet() {
+        }
+
+        public GZipMessageSet(int messageSetSize) 
+            : base(messageSetSize) {
+        }
+
         public override void SaveTo(KafkaWriter writer) {
             using (var stream = new MemoryStream(4096)) {
                 var writer2 = new KafkaWriter(stream);
@@ -82,7 +88,7 @@ namespace Chuye.Kafka.Protocol {
                     item.SaveTo(writer2);
                 }
                 var messageBuffer = stream.ToArray();
-                var compressedMessageBuffer = GZip.Compress(messageBuffer, 0, messageBuffer.Length);
+                var compressedMessageBuffer = Compress.GZip.Compress(messageBuffer, 0, messageBuffer.Length);
 
                 Items = new[] {
                     new MessageSetDetail {

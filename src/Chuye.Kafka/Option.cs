@@ -21,8 +21,9 @@ namespace Chuye.Kafka {
         public NameValueCollection Property {
             get { return _property; }
         }
+
         public ProducerConfig ProducerConfig { get; set; }
-        public ConsumerConfig ConsumerConfig { get; internal set; }
+        public ConsumerConfig ConsumerConfig { get; set; }
 
         public Option(params Uri[] brokerUris) {
             if (brokerUris == null || brokerUris.Length == 0) {

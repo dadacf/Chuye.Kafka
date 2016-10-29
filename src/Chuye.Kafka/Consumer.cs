@@ -23,6 +23,9 @@ namespace Chuye.Kafka {
 
         public String GroupId { get; private set; }
         public String Topic { get; private set; }
+        public ConsumerConfig Config {
+            get { return _config; }
+        }
 
         public CoordinatorState CoordinatorState {
             get {
@@ -69,6 +72,7 @@ namespace Chuye.Kafka {
         }
 
         private void EnsureMessageFetched() {
+            var maxBytes = _config.FetchBytes;
             var maxWaitTime = _config.FetchMilliseconds;
             if (_messages == null) {
                 maxWaitTime = _config.FetchMilliseconds / 2;
@@ -91,7 +95,6 @@ namespace Chuye.Kafka {
 
             var partition = _partitionDispatcher.SelectParition();
             var offset = _offsets.GetCurrentOffset(partition);
-            var maxBytes = _config.FetchBytes;
             Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Fetch group '{2}', topic '{3}'({4}), offset {5}",
                 DateTime.Now, Thread.CurrentThread.ManagedThreadId, GroupId, Topic, partition, offset);
             var messages = _client.Fetch(Topic, partition, offset, maxBytes: maxBytes, maxWaitTime: maxWaitTime).ToArray();

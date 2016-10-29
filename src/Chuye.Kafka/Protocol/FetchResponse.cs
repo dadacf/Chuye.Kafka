@@ -71,7 +71,7 @@ namespace Chuye.Kafka.Protocol {
             ErrorCode           = (ErrorCode)reader.ReadInt16();
             HighwaterMarkOffset = reader.ReadInt64();
             MessageSetSize      = reader.ReadInt32();
-            MessageSet          = new MessageSet(this);
+            MessageSet          = new MessageSet(MessageSetSize);
             // Min length per MessageSet: 8 + 4 + ( 4 + 1 + 1 + 4 + key.length + 4 + value.length) is 26
             // It means 2 msg has minimal MessageBody = 26*2 = 52
             MessageSet.FetchFrom(reader); 

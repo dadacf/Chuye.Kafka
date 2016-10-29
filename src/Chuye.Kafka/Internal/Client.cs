@@ -105,16 +105,18 @@ namespace Chuye.Kafka.Internal {
             return response;
         }
 
-        public Int64 Produce(String topic, Int32 partition, IList<Message> messages) {
+        public Int64 Produce(String topic, Int32 partition, IList<Message> messages, 
+                AcknowlegeStrategy strategy = AcknowlegeStrategy.Written,MessageCodec codec = MessageCodec.None) {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
-            var request = new ProduceRequest(topic, partition, messages);
+            var request = new ProduceRequest(topic, partition, messages, strategy, codec);
             var response = (ProduceResponse)SubmitRequest(broker, request);
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions[0].Details[0].Offset;
         }
 
-        public async Task<Int64> ProduceAsync(String topic, Int32 partition, IList<Message> messages) {
+        public async Task<Int64> ProduceAsync(String topic, Int32 partition, IList<Message> messages,
+                AcknowlegeStrategy strategy = AcknowlegeStrategy.Written, MessageCodec codec = MessageCodec.None) {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new ProduceRequest(topic, partition, messages);
@@ -123,8 +125,9 @@ namespace Chuye.Kafka.Internal {
             return response.TopicPartitions[0].Details[0].Offset;
         }
 
-        public Int64 Produce(String topic, Int32 partition, params String[] messages) {
-            return Produce(topic, partition, messages.Select(x => (Message)x).ToArray());
+        public Int64 Produce(String topic, Int32 partition, IList<String> messages,
+                AcknowlegeStrategy strategy = AcknowlegeStrategy.Written, MessageCodec codec = MessageCodec.None) {
+            return Produce(topic, partition, messages.Select(x => (Message)x).ToArray(), strategy, codec);
         }
 
         public IEnumerable<OffsetMessage> Fetch(String topic, Int32 partition, Int64 fetchOffset, Int32 maxBytes = 1024 * 16, Int32 maxWaitTime = 1000) {
