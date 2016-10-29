@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Internal\Client.cs" />
+    <Compile Include="Internal\CoordinatorConfig.cs" />
     <Compile Include="Serialization\Compress.cs" />
     <Compile Include="Internal\ConsumerConfig.cs" />
     <Compile Include="Internal\ConsumerOffsetRecorder.cs" />

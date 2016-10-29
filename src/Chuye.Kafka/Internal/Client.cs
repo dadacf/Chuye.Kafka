@@ -18,7 +18,7 @@ namespace Chuye.Kafka.Internal {
 
         public event EventHandler<RequestSendingEventArgs> RequestSending;
         public event EventHandler<ResponseReceivedEventArg> ResponseReceived;
-        
+
         internal KnownBrokerDispatcher ExistingBrokerDispatcher {
             get { return _knownBrokerDispatcher; }
         }
@@ -27,7 +27,7 @@ namespace Chuye.Kafka.Internal {
             get { return _topicBrokerDispatcher; }
         }
 
-        public Client(Option option) { 
+        public Client(Option option) {
             _connectionFactory = option.GetSharedConnections();
             _knownBrokerDispatcher = new KnownBrokerDispatcher(option.BrokerUris.ToArray());
             _topicBrokerDispatcher = new TopicBrokerDispatcher(this);
@@ -65,7 +65,7 @@ namespace Chuye.Kafka.Internal {
         internal Task<Response> SubmitRequestAsync(Broker broker, Request req) {
             return SubmitRequestAsync(broker, req);
         }
-        
+
         internal async Task<Response> SubmitRequestAsync(Uri uri, Request req) {
             var reqEvent = new RequestSendingEventArgs(uri, req);
             OnRequestSending(reqEvent);
@@ -101,12 +101,12 @@ namespace Chuye.Kafka.Internal {
             var request = new MetadataRequest(topics);
             var response = (MetadataResponse)SubmitRequest(brokerUri, request);
             response.TopicMetadatas = response.TopicMetadatas
-                .Where(x => x.TopicName != __consumer_offsets).ToArray();
+                .Where(x => !x.TopicName.Equals(__consumer_offsets, StringComparison.OrdinalIgnoreCase)).ToArray();
             return response;
         }
 
-        public Int64 Produce(String topic, Int32 partition, IList<Message> messages, 
-                AcknowlegeStrategy strategy = AcknowlegeStrategy.Written,MessageCodec codec = MessageCodec.None) {
+        public Int64 Produce(String topic, Int32 partition, IList<Message> messages,
+                AcknowlegeStrategy strategy = AcknowlegeStrategy.Written, MessageCodec codec = MessageCodec.None) {
             EnsureLegalTopicSpelling(topic);
             var broker = _topicBrokerDispatcher.SelectBroker(topic, partition);
             var request = new ProduceRequest(topic, partition, messages, strategy, codec);
@@ -124,6 +124,7 @@ namespace Chuye.Kafka.Internal {
             response.TryThrowFirstErrorOccured();
             return response.TopicPartitions[0].Details[0].Offset;
         }
+
 
         public Int64 Produce(String topic, Int32 partition, IList<String> messages,
                 AcknowlegeStrategy strategy = AcknowlegeStrategy.Written, MessageCodec codec = MessageCodec.None) {

@@ -12,27 +12,26 @@ namespace Chuye.Kafka {
         private Uri[] _brokerUris;
         private ConnectionFactory _connectionFactory;
         private Client _client;
-        private NameValueCollection _property;
-
+#if NET40
+        public IList<Uri> BrokerUris {
+#else
         public IReadOnlyList<Uri> BrokerUris {
+#endif
             get { return _brokerUris; }
-        }
-
-        public NameValueCollection Property {
-            get { return _property; }
         }
 
         public ProducerConfig ProducerConfig { get; set; }
         public ConsumerConfig ConsumerConfig { get; set; }
+        public CoordinatorConfig CoordinatorConfig { get; set; }
 
         public Option(params Uri[] brokerUris) {
             if (brokerUris == null || brokerUris.Length == 0) {
                 throw new ArgumentOutOfRangeException("brokerUris");
             }
-            _brokerUris    = brokerUris;
-            _property      = new NameValueCollection();
-            ProducerConfig = ProducerConfig.Default;
-            ConsumerConfig = ConsumerConfig.Default;
+            _brokerUris       = brokerUris;
+            ProducerConfig    = ProducerConfig.Default;
+            ConsumerConfig    = ConsumerConfig.Default;
+            CoordinatorConfig = CoordinatorConfig.Default;
         }
 
         public ConnectionFactory GetSharedConnections() {

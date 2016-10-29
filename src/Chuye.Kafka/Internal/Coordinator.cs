@@ -12,6 +12,7 @@ namespace Chuye.Kafka.Internal {
     public class Coordinator {
         private readonly Option _option;
         private readonly Client _client;
+        private CoordinatorConfig _config;
         private readonly TopicPartitionDispatcher _partitionDispatcher;
         private readonly String _groupId;
         private Broker _coordinateBroker;
@@ -19,7 +20,6 @@ namespace Chuye.Kafka.Internal {
         private String _memberId;
         private JoinGroupResponseMember[] _members;
         private Timer _heartbeatTimer;
-        private Int32? _sessionTimeout;
         private CoordinatorState _state;
         private Dictionary<String, Int32[]> _partitionAssignments;
 
@@ -36,9 +36,14 @@ namespace Chuye.Kafka.Internal {
         public Coordinator(Option option, String groupId) {
             _option              = option;
             _client              = option.GetSharedClient();
+            _config              = option.CoordinatorConfig;
             _groupId             = groupId;
             _memberId            = String.Empty;
-            _heartbeatTimer      = new Timer(HeartbeatCallback);
+//#if NET452
+//            _heartbeatTimer      = new Timer(HeartbeatCallback);
+//#elif NETSTANDARD1_6
+            _heartbeatTimer      = new Timer(HeartbeatCallback, null, Timeout.Infinite, Timeout.Infinite);
+//#endif
             _partitionDispatcher = new TopicPartitionDispatcher(_client.TopicBrokerDispatcher);
         }
 
@@ -60,12 +65,7 @@ namespace Chuye.Kafka.Internal {
                 RebalanceAsync();
             }
             else {
-                var sessionTimeoutStr = _option.Property.Get("JoinGroupRequest.SessionTimeout");
-                Int32 sessionTimeout;
-                if (Int32.TryParse(sessionTimeoutStr, out sessionTimeout)) {
-                    _sessionTimeout = sessionTimeout;
-                }
-                _heartbeatTimer.Change(_sessionTimeout.HasValue ? _sessionTimeout.Value : 5000, Timeout.Infinite);
+                _heartbeatTimer.Change(_config.JoinGroupSessionTimeout, Timeout.Infinite);
             }
         }
 
@@ -93,7 +93,7 @@ namespace Chuye.Kafka.Internal {
             //4. Heartbeat
             Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #5 Heartbeat of member '{2}' at group '{3}'",
                 DateTime.Now, Thread.CurrentThread.ManagedThreadId, _memberId, _groupId);
-            _heartbeatTimer.Change(0L, Timeout.Infinite);
+            _heartbeatTimer.Change(0, Timeout.Infinite);
         }
 
         private void ResolveTopicPartitionAssigned(SyncGroupMemberAssignment assignment) {
@@ -234,9 +234,7 @@ namespace Chuye.Kafka.Internal {
         }
 
         public JoinGroupResponse JoinGroup(String groupId, String memberId, IList<String> topics) {
-            var request = _sessionTimeout.HasValue
-                ? new JoinGroupRequest(groupId, memberId, topics.ToArray(), _sessionTimeout.Value)
-                : new JoinGroupRequest(groupId, memberId, topics.ToArray());
+            var request = new JoinGroupRequest(groupId, memberId, topics.ToArray(), _config.JoinGroupSessionTimeout);
             var response = (JoinGroupResponse)_client.SubmitRequest(_coordinateBroker.ToUri(), request);
             response.TryThrowFirstErrorOccured();
             return response;
