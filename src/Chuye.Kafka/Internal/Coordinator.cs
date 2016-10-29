@@ -39,11 +39,7 @@ namespace Chuye.Kafka.Internal {
             _config              = option.CoordinatorConfig;
             _groupId             = groupId;
             _memberId            = String.Empty;
-//#if NET452
-//            _heartbeatTimer      = new Timer(HeartbeatCallback);
-//#elif NETSTANDARD1_6
             _heartbeatTimer      = new Timer(HeartbeatCallback, null, Timeout.Infinite, Timeout.Infinite);
-//#endif
             _partitionDispatcher = new TopicPartitionDispatcher(_client.TopicBrokerDispatcher);
         }
 
@@ -65,7 +61,8 @@ namespace Chuye.Kafka.Internal {
                 RebalanceAsync();
             }
             else {
-                _heartbeatTimer.Change(_config.JoinGroupSessionTimeout, Timeout.Infinite);
+                // heart beat interval
+                _heartbeatTimer.Change(_config.HeartBeatInterval, Timeout.Infinite);
             }
         }
 
@@ -126,6 +123,10 @@ namespace Chuye.Kafka.Internal {
         }
 
         private SyncGroupResponse TryJoinAndSyncGroup(Int32 retryCount, Int32 retryTimtout) {
+            if (Topics == null || Topics.Length == 0) {
+                throw new ArgumentOutOfRangeException("Topics");
+            }
+
             SyncGroupResponse resp = null;
             var retryUsed = 0;
             while (resp == null && ++retryUsed < retryCount) {

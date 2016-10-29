@@ -1,5 +1,6 @@
 ﻿# Kafka driver implementation for .NET & Core
 ----
+
 本类库基于 **kafka 0.9** 协议，包含的实现：
 
 * 支持 dotnet core，.net 452
@@ -7,6 +8,7 @@
 * 高级的 consumer
     * 基于 GROUP API 的负载均衡实现，见[Kafka Client-side Assignment Proposal](https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal) 
     * 自动进度保存的、可配置的的 offset 管理策略
+* 无第3方类库依赖
 
 ## Usage
 
@@ -75,6 +77,8 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
 
 > 注意：此模式下消费者维护着消费进度，提交策略依赖了消费进度和时间间隔，CancellationTokenSource.Cancel()　是合理中止消费的方式。
 
+----
+
 ## Concerns
 
 Q 生产者如何设定消息以 gzip、snappy 压缩？  
@@ -89,22 +93,60 @@ A kafka 提供了堵塞式 fetch 接口，见 Option.ConsumerConfig.FetchBytes�
 Q 消费者负载均衡状态机实现的怎么样？
 A 能工作，目前处理了 RebalanceInProgressCode 状态码，更多像 GroupCoordinatorNotAvailableCode 及 retry 逻辑需要后续加入；
 
-Q 消息者负载均衡算法、生产者消息路由策略是怎样的，能否扩展
-A 前者是整除算法，实现细节见 *Coordinato.AssigningTopicPartitions()*，后者是简单的 partition 轮换实现；可扩展的实现在计划中.
-
 Q 客户端获取到 TopicMetadata 后将更新 Broker 目标而不使用初始参数，如何 hook 以调试？  
 A Client 对象暴露了 RequestSending 与 ResponseReceived 事件，用户可以对它们进行拦截，在进行 Socket 抓包分析，示例:
 
 ```c
     var option = new Option(new Uri("http://ubuntu-16:9094"), new Uri("http://ubuntu-16:9093"));
-    option.GetSharedClient().RequestSending += (_, e) => {
-        e.Uri = new Uri(e.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
-        // do stuff with e.Request
+    option.GetSharedClient().ResponseReceived += (sender, args) => {
+        args.Uri = new Uri(args.Uri.AbsoluteUri.Replace("ubuntu-16", "localhost"));
+        // do stuff with args.Request
     };
-    option.GetSharedClient().ResponseReceived += (_, e) => {
-        //do stuff with e.Response
+    option.GetSharedClient().ResponseReceived += (sender, args) => {
+        //do stuff with args.Response
     };
 ```
+
+Q 消息者负载均衡算法、生产者消息路由策略是怎样的，能否扩展
+A 前者是整除算法，实现细节见 *Coordinato.AssigningTopicPartitions()*，后者是简单的 partition 轮换实现；可扩展的实现在计划中，添加 TraceListener 可以查看日志输出 
+
+```bash
+# 1. 启动 consumer A，以分组 demoGroupId 试图消费拥有2个分区的 demoTopic
+Consumer A Information: 0 : 17:16:04.534 [11] #1 Rebalace start at group 'demoGroupId'
+Consumer A Information: 0 : 17:16:04.555 [11] #2 Group coordinate got broker http://ubuntu-16:9094/ at group 'demoGroupId'
+Consumer A Information: 0 : 17:16:04.561 [11] #3 Join group 'demoGroupId', assigning topic and partitions as leader
+
+# 1.1 由于不存在其他消费者，consumer A 将两个分区 [0, 1] 分派给自己
+Consumer A Information: 0 : 17:16:04.596 [11] #4 Sync group 'demoGroupId', Member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' dispathced Topic 'demoTopic'(0|1)
+Consumer A Information: 0 : 17:16:04.599 [11] #5 Heartbeat of member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' at group 'demoGroupId'
+
+# 2. 启动 consumer B, 加入 demoGroupId 并试图消费 demoTopic
+Consumer B Information: 0 : 17:16:08.808 [11] #1 Rebalace start at group 'demoGroupId'
+Consumer B Information: 0 : 17:16:08.827 [11] #2 Group coordinate got broker http://ubuntu-16:9094/ at group 'demoGroupId'
+Consumer B Information: 0 : 17:16:13.621 [11] #3 Join group 'demoGroupId', waiting for assingments as follower
+
+# 3. consumer A 收到心跳响应码为 RebalanceInProgressCode，尝试重新负载均衡
+Consumer A Information: 0 : 17:16:13.616 [09] #6 Need rebalace at group 'demoGroupId' for 'RebalanceInProgressCode'
+Consumer A Information: 0 : 17:16:13.616 [09] #1 Rebalace start at group 'demoGroupId'
+
+# 4. 分组 leader 被重新指派，topic-partition 被重新分派，consumer A 被分派的分区id 为 0 
+Consumer A Information: 0 : 17:16:13.620 [09] #3 Join group 'demoGroupId', assigning topic and partitions as leader
+Consumer A Information: 0 : 17:16:13.629 [09] #4 Sync group 'demoGroupId', Member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' dispathced Topic 'demoTopic'(0)
+Consumer A Information: 0 : 17:16:13.629 [09] #5 Heartbeat of member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' at group 'demoGroupId'
+
+# 4.1. consumer B 被分派的分区id 为 0
+Consumer B Information: 0 : 17:16:13.631 [11] #4 Sync group 'demoGroupId', Member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' dispathced Topic 'demoTopic'(1)
+Consumer B Information: 0 : 17:16:13.634 [11] #5 Heartbeat of member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' at group 'demoGroupId'
+
+# 5. consumer B 离开分组，consumer A 再次负载均衡
+Consumer A Information: 0 : 17:16:40.663 [10] #6 Need rebalace at group 'demoGroupId' for 'RebalanceInProgressCode'
+Consumer A Information: 0 : 17:16:40.663 [10] #1 Rebalace start at group 'demoGroupId'
+Consumer A Information: 0 : 17:16:40.667 [10] #3 Join group 'demoGroupId', assigning topic and partitions as leader
+Consumer A Information: 0 : 17:16:40.672 [10] #4 Sync group 'demoGroupId', Member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' dispathced Topic 'demoTopic'(0|1)
+Consumer A Information: 0 : 17:16:40.672 [10] #5 Heartbeat of member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' at group 'demoGroupId'
+```
+
+----
 
 ## More
 

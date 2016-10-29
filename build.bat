@@ -9,7 +9,7 @@ msbuild "%local%src\Chuye.Kafka\Chuye.Kafka.DotnetCore.xproj" /t:Rebuild /P:Conf
 @goto copy
 
 :copy
-robocopy "%local%src\Chuye.Kafka\bin\Release" "%local%release" /mir
+robocopy "%local%src\Chuye.Kafka\bin\Release" "%local%release/Chuye.Kafka" /mir
 @goto pack
 
 :pack
