@@ -62,7 +62,7 @@ namespace Chuye.Kafka {
                 if (chunk.Count < 5 && messages.Sum(x => x.Value != null ? x.Value.Length : 0) < 4096) {
                     codec = MessageCodec.None;
                 }
-                offset = _client.Produce(topicPartition.Name, topicPartition.Partition, chunk, 
+                offset = _client.Produce(topicPartition.Name, topicPartition.Partition, chunk,
                     _config.AcknowlegeStrategy, codec);
             }
             return offset;
@@ -183,11 +183,23 @@ namespace Chuye.Kafka {
         }
 
         public override Task<Int64> SendAsync(String topic, params String[] messages) {
+#if NET40
+            var taskSource = new TaskCompletionSource<Int64>();
+            taskSource.SetResult(Send(topic, messages));
+            return taskSource.Task;
+#else
             return Task.FromResult(Send(topic, messages));
+#endif
         }
 
         public override Task<Int64> SendAsync(String topic, IList<Message> messages) {
+#if NET40
+            var taskSource = new TaskCompletionSource<Int64>();
+            taskSource.SetResult(Send(topic, messages));
+            return taskSource.Task;
+#else
             return Task.FromResult(Send(topic, messages));
+#endif
         }
 
         public void Dispose() {
