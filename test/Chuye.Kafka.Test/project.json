@@ -1,0 +1,14 @@
+﻿{
+  "version": "1.0.0-*",
+  "testRunner": "xunit",
+  "dependencies": {
+    "Chuye.Kafka": "1.0.0-*",
+    "xunit": "2.2.0-beta3-build3402",
+    "CompareNETObjects": "3.5.0"
+  },
+
+  "frameworks": {
+    "net452": {
+    }
+  }
+}

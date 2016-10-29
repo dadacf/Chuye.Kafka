@@ -1,13 +1,33 @@
-﻿# Kafka driver implementation for .NET
+﻿# Kafka driver implementation for .NET & Core
 ----
 本类库基于 **kafka 0.9** 协议，包含的实现：
 
+* 支持 dotnet core，.net 452
 * 节流、异步的 producer
 * 高级的 consumer
     * 基于 GROUP API 的负载均衡实现，见[Kafka Client-side Assignment Proposal](https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal) 
     * 自动进度保存的、可配置的的 offset 管理策略
 
 ## Usage
+
+```bash
+Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
+```
+
+对于 dotnet core,
+
+```json
+  "dependencies": {
+    "Microsoft.NETCore.App": {
+      "type": "platform",
+      "version": "1.0.1"
+    },
+    "Chuye.Kafka": "1.0.0-beta",
+    "System.Diagnostics.TraceSource": "4.0.0"    
+  },
+```
+
+
 
 * Option  
 接受 Broker 集群地址作为参数，它拥有最长的生命周期，在 web 项目中应单例维护
@@ -28,7 +48,8 @@
     var messages = new []{ "msg#1", "msg#2"};
     producer.Send("demoTopic3", messages);
 ```
-* ThrottledProducer
+
+* ThrottledProducer  
 内置队列的生产者实现，触及数量上限或 Dispose 时批量发送消息， 在 web 横在上中应以 PerRequest 生命周期维护
 
 ```c
@@ -38,7 +59,7 @@
     }
 ```
 
-* Consumer
+* Consumer  
 消费者的基本实现，Fetch() 是堵塞式的，接受 CancellationToken 作为参数实现了协作式取消
 
 ```c
@@ -49,7 +70,6 @@
         //do stuff with msg
     }
 ```
-
 
 ## Concerns
 
@@ -81,3 +101,16 @@ A Client 对象暴露了 RequestSending 与 ResponseReceived 事件，用户可�
         //do stuff with e.Response
     };
 ```
+
+## More
+
+### 关于协议部分
+
+Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见[A Guide To The Kafka Protocol](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol#AGuideToTheKafkaProtocol-TheAPIs)。
+
+在前置版本的实现中，序列化效率是作者的关注重点，KafkaBinary 及相关实现花费了作者大量时间，但使用中发现有收益但带来开发复杂度、增大了调试难度，另外的问题是 doetnet core 至少是起初版本缺少了 System.ServiceModel.Channels.BufferManager 相关声明——该对象是相关实现的重要环节。
+
+出于上述顾虑及迟早迁移到 dotnet core 的想法，1.* 版本将负载均衡及 Offset 维护置于更重要的位置，在 MemoryStream 的基础上实现了协议部分的序列化与反序列化逻辑。
+
+### 关于性能
+

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Chuye.Kafka</id>
+    <version>1.0.0-beta</version>
+    <title>Chuye.Kafka</title>
+    <authors>jusfrw</authors>
+    <owners>jusfrw</owners>
+    <licenseUrl>https://github.com/jusfr/Chuye.Kafka/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/jusfr/Chuye.Kafka</projectUrl>
+    <iconUrl>https://www.nuget.org/Content/Images/packageDefaultIcon.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Kafka driver implementation for dotnet core</description>
+    <releaseNotes>This is a initial release.</releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <tags>Chuye Kakfa</tags>
+    <dependencies />
+  </metadata>
+  <files>
+    <file src="..\release\net452\Chuye.kafka.dll" target="lib\net45" />
+    <file src="..\release\netstandard1.6\Chuye.kafka.dll" target="lib\netstandard1.6" />
+  </files>
+</package>
