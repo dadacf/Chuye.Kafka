@@ -80,20 +80,20 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
 
 ## Concerns
 
-Q 生产者如何设定消息以 gzip、snappy 压缩？  
-A 默认不压缩消息，支持 gzip 形式压缩，见 Option.ProducerConfig.MessageCodec；消费者自动解压 gzip 后的消息；
+**Q** 生产者如何设定消息以 gzip、snappy 压缩？  
+**A** 默认不压缩消息，支持 gzip 形式压缩，见 Option.ProducerConfig.MessageCodec；消费者自动解压 gzip 后的消息；
 
-Q 生产者如何设定消息发送的 RequiredAcks？  
-A 默认使用 RequiredAcks = 1 确保消息得到发送，Option.ProducerConfig.AcknowlegeStrategy；
+**Q** 生产者如何设定消息发送的 RequiredAcks？  
+**A** 默认使用 RequiredAcks = 1 确保消息得到发送，Option.ProducerConfig.AcknowlegeStrategy；
 
-Q 消费者如何设置拉取消息的大小与等待时间？
-A kafka 提供了堵塞式 fetch 接口，见 Option.ConsumerConfig.FetchBytes，Option.ConsumerConfig.FetchMilliseconds；
+**Q** 消费者如何设置拉取消息的大小与等待时间？  
+**A** kafka 提供了堵塞式 fetch 接口，见 Option.ConsumerConfig.FetchBytes，Option.ConsumerConfig.FetchMilliseconds；
 
-Q 消费者负载均衡状态机实现的怎么样？
-A 能工作，目前处理了 RebalanceInProgressCode 状态码，更多像 GroupCoordinatorNotAvailableCode 及 retry 逻辑需要后续加入；
+**Q** 消费者负载均衡状态机实现的怎么样？  
+**A** 能工作，目前处理了 RebalanceInProgressCode 状态码，更多像 GroupCoordinatorNotAvailableCode 及 retry 逻辑需要后续加入；
 
-Q 客户端获取到 TopicMetadata 后将更新 Broker 目标而不使用初始参数，如何 hook 以调试？  
-A Client 对象暴露了 RequestSending 与 ResponseReceived 事件，用户可以对它们进行拦截，在进行 Socket 抓包分析，示例:
+**Q** 客户端获取到 TopicMetadata 后将更新 Broker 目标而不使用初始参数，如何 hook 以调试？  
+**A** Client 对象暴露了 RequestSending 与 ResponseReceived 事件，用户可以对它们进行拦截，在进行 Socket 抓包分析，示例:
 
 ```c
     var option = new Option("ubuntu-16:9094,ubuntu-16:9093");
@@ -106,8 +106,8 @@ A Client 对象暴露了 RequestSending 与 ResponseReceived 事件，用户可�
     };
 ```
 
-Q 消息者负载均衡算法、生产者消息路由策略是怎样的，能否扩展
-A 前者是整除算法，实现细节见 *Coordinato.AssigningTopicPartitions()*，后者是简单的 partition 轮换实现；可扩展的实现在计划中，添加 TraceListener 可以查看日志输出 
+**Q** 消息者负载均衡算法、生产者消息路由策略是怎样的，能否扩展？  
+**A** 前者是整除算法，实现细节见 *Coordinato.AssigningTopicPartitions()*，后者是简单的 partition 轮换实现；可扩展的实现在计划中，添加 TraceListener 可以查看日志输出 
 
 ```bash
 # 1. 启动 consumer A，以分组 demoGroupId 试图消费拥有2个分区的 demoTopic
