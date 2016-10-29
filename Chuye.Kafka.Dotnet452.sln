@@ -12,7 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{40771CFB-C5A0-4F65-AC0A-587372855081}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chuye.Kafka.Test.Net452", "test\Chuye.Kafka.Test\Chuye.Kafka.Test.Net452.csproj", "{DBD56401-D8B0-4B4C-B21E-BDF1798C5DC9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chuye.Kafka.Test", "test\Chuye.Kafka.Test\Chuye.Kafka.Test.csproj", "{DBD56401-D8B0-4B4C-B21E-BDF1798C5DC9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chuye.Kafka.Net452", "src\Chuye.Kafka\Chuye.Kafka.Net452.csproj", "{898D0377-63D3-4638-9C72-28E1F9A051B6}"
 EndProject
