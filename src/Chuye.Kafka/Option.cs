@@ -21,13 +21,17 @@ namespace Chuye.Kafka {
         public NameValueCollection Property {
             get { return _property; }
         }
+        public ProducerConfig ProducerConfig { get; set; }
+        public ConsumerConfig ConsumerConfig { get; internal set; }
 
         public Option(params Uri[] brokerUris) {
             if (brokerUris == null || brokerUris.Length == 0) {
                 throw new ArgumentOutOfRangeException("brokerUris");
             }
-            _brokerUris = brokerUris;
-            _property = new NameValueCollection();
+            _brokerUris    = brokerUris;
+            _property      = new NameValueCollection();
+            ProducerConfig = ProducerConfig.Default;
+            ConsumerConfig = ConsumerConfig.Default;
         }
 
         public ConnectionFactory GetSharedConnections() {

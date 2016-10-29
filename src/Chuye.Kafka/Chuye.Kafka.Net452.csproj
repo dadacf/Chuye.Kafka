@@ -41,13 +41,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Internal\Client.cs" />
+    <Compile Include="Internal\ConsumerConfig.cs" />
     <Compile Include="Internal\ConsumerOffsetRecorder.cs" />
     <Compile Include="Internal\Coordinator.cs" />
     <Compile Include="Internal\CoordinatorState.cs" />
     <Compile Include="Internal\Enumerable`.cs" />
     <Compile Include="Internal\KnownBrokerDispatcher.cs" />
-    <Compile Include="Internal\DelayedMessageQueue.cs" />
+    <Compile Include="Internal\MessageChunk.cs" />
+    <Compile Include="Internal\ThrottleMessageQueue.cs" />
     <Compile Include="Internal\KnownPartitionDispatcher.cs" />
+    <Compile Include="Internal\ProducerConfig.cs" />
     <Compile Include="Internal\ResponseReceivedEventArg.cs" />
     <Compile Include="Internal\RequestSendingEventArgs.cs" />
     <Compile Include="Internal\SocketPool.cs" />

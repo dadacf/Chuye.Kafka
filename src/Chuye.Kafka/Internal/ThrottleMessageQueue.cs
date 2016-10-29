@@ -5,18 +5,19 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chuye.Kafka.Internal {
-    class DelayedMessageQueue {
-        private const Int32 Limit = 10;
-        private const Int32 MaxIntervalMilliseconds = 1000;
+    class ThrottleMessageQueue {
         private DateTime _createTime;
         private readonly Queue<Message> _queue;
         private readonly Object _sync;
         private readonly TopicPartition _topicPartition;
-        private readonly Client _client;
+        private readonly Producer _producer;
 
-        public DelayedMessageQueue(TopicPartition topicPartition, Client client) {
+        public Int32 ThrottleSize { get; set; }
+        public Int32 ThrottleMilliseconds { get; set; }
+
+        public ThrottleMessageQueue(TopicPartition topicPartition, Producer producer) {
             _topicPartition = topicPartition;
-            _client         = client;
+            _producer       = producer;
             _queue          = new Queue<Message>();
             _sync           = new Object();
             _createTime     = DateTime.UtcNow;
@@ -32,18 +33,19 @@ namespace Chuye.Kafka.Internal {
                     _queue.Enqueue(message);
                 }
             }
-            if (_queue.Count > Limit || DateTime.UtcNow.Subtract(_createTime).TotalMilliseconds > MaxIntervalMilliseconds) {
+            if (_queue.Count > ThrottleSize || DateTime.UtcNow.Subtract(_createTime).TotalMilliseconds > ThrottleMilliseconds) {
                 Flush();
             }
         }
 
         public void Flush() {
             lock (_sync) {
-                var list = new List<Message>(Limit);
+                var list = new List<Message>(ThrottleSize);
                 while (_queue.Count > 0) {
                     list.Add(_queue.Dequeue());
-                    if (list.Count >= Limit) {
+                    if (list.Count >= ThrottleSize) {
                         SendBulk(list);
+                        list.Clear();
                     }
                 }
                 if (list.Count > 0) {
@@ -53,7 +55,7 @@ namespace Chuye.Kafka.Internal {
         }
 
         private void SendBulk(IList<Message> messages) {
-            _client.Produce(_topicPartition.Name, _topicPartition.Partition, messages);
+            _producer.ChunkingSend(_topicPartition.Name, messages);
         }
     }
 }

@@ -16,6 +16,7 @@ namespace Chuye.Kafka.Internal {
         private readonly Int64[] _offsetSaved;
         private readonly Int64[] _offsetSubmited;
         private DateTime _lastSubmit;
+        private Object _sync;
 
         public ConsumerOffsetRecorder(Consumer consumer, Int32[] partitions) {
             _client         = consumer.Client;
@@ -25,28 +26,39 @@ namespace Chuye.Kafka.Internal {
             _offsetSaved    = Enumerable.Repeat(-1L, partitions.Length).ToArray();
             _offsetSubmited = new Int64[partitions.Length];
             _lastSubmit     = DateTime.UtcNow;
+            _sync           = new Object();
         }
 
-        public void Proceed(Int32 partition, Int64 offset) {
-            Proceed(partition, offset, false);
+        public void MoveForward(Int32 partition) {
+            var index = Array.IndexOf(_partitions, partition);
+            if (_offsetSubmited[index] < _offsetSaved[index]) {
+                OffsetCommit(partition, _offsetSaved[index]);
+                _offsetSubmited[index] = _offsetSaved[index];
+            }
         }
 
-        public void Proceed(Int32 partition, Int64 offset, Boolean forceSubmit) {
+        public void MoveForward(Int32 partition, Int64 offset) {
+            MoveForward(partition, offset, false);
+        }
+
+        public void MoveForward(Int32 partition, Int64 offset, Boolean forceSubmit) {
             var index = Array.IndexOf(_partitions, partition);
             if (_offsetSaved[index] > offset + 1) {
                 throw new ArgumentOutOfRangeException("offset");
             }
-            if (_offsetSaved[index] == offset + 1) {
+            if (_offsetSubmited[index] == offset + 1) {
                 return;
             }
 
-            _offsetSaved[index] = offset + 1;
-            var shouldSubmit = forceSubmit
-                || (_offsetSubmited[index] + 9 <= _offsetSaved[index]
-                && _lastSubmit.Subtract(DateTime.UtcNow).TotalSeconds > 2d);
-            if (shouldSubmit) {
-                OffsetCommit(partition, _offsetSaved[index]);
-                _offsetSubmited[index] = _offsetSaved[index];
+            lock (_sync) {
+                _offsetSaved[index] = offset + 1;
+                var shouldSubmit = forceSubmit
+                    || (_offsetSubmited[index] + 9 <= _offsetSaved[index]
+                    && _lastSubmit.Subtract(DateTime.UtcNow).TotalSeconds > 2d);
+                if (shouldSubmit) {
+                    OffsetCommit(partition, _offsetSaved[index]);
+                    _offsetSubmited[index] = _offsetSaved[index];
+                }
             }
         }
 
@@ -56,16 +68,18 @@ namespace Chuye.Kafka.Internal {
             _client.OffsetCommit(_topic, partition, _groupId, offset);
         }
 
-        public Int64 GetSavedOffset(Int32 partition) {
+        public Int64 GetCurrentOffset(Int32 partition) {
             var index = Array.IndexOf(_partitions, partition);
             var offsetSaved = _offsetSaved[index];
-            if (offsetSaved == -1L) {
-                offsetSaved = _client.OffsetFetch(_topic, partition, _groupId);
-            }
-            if (offsetSaved == -1L) {
-                offsetSaved = _client.Offset(_topic, partition, OffsetOption.Earliest);
-                _offsetSaved[index] = offsetSaved;
-                _offsetSubmited[index] = offsetSaved;
+            lock (_sync) {
+                if (offsetSaved == -1L) {
+                    offsetSaved = _client.OffsetFetch(_topic, partition, _groupId);
+                }
+                if (offsetSaved == -1L) {
+                    offsetSaved = _client.Offset(_topic, partition, OffsetOption.Earliest);
+                    _offsetSaved[index] = offsetSaved;
+                    _offsetSubmited[index] = offsetSaved;
+                }
             }
             return offsetSaved;
         }
