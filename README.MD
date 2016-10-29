@@ -59,6 +59,8 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
     }
 ```
 
+> 注意：此模式下生产者可能不会立即发送消息，Dispose() 应该保证得到调用。
+
 * Consumer  
 消费者的基本实现，Fetch() 是堵塞式的，接受 CancellationToken 作为参数实现了协作式取消
 
@@ -70,6 +72,8 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.0-beta
         //do stuff with msg
     }
 ```
+
+> 注意：此模式下消费者维护着消费进度，提交策略依赖了消费进度和时间间隔，CancellationTokenSource.Cancel()　是合理中止消费的方式。
 
 ## Concerns
 
@@ -114,3 +118,4 @@ Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见[A Guide To T
 
 ### 关于性能
 
+早前在 UCLOUD 的 Kafka 集群上进行了不同连接数的吞吐量测试，见[Kafka-cluster-testing-on-ucloud](doc/Kafka-cluster-testing-on-ucloud.md)
