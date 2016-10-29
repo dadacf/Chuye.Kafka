@@ -40,22 +40,9 @@ namespace Chuye.Kafka.Internal {
 
         public void Flush() {
             lock (_sync) {
-                var list = new List<Message>(ThrottleSize);
-                while (_queue.Count > 0) {
-                    list.Add(_queue.Dequeue());
-                    if (list.Count >= ThrottleSize) {
-                        SendBulk(list);
-                        list.Clear();
-                    }
-                }
-                if (list.Count > 0) {
-                    SendBulk(list);
-                }
+                _producer.ChunkingSend(_topicPartition, _queue);
+                _queue.Clear();
             }
-        }
-
-        private void SendBulk(IList<Message> messages) {
-            _producer.ChunkingSend(_topicPartition.Name, messages);
         }
     }
 }

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Chuye.Kafka.Internal;
+using Chuye.Kafka.Protocol;
 
 namespace Chuye.Kafka {
     public class Producer {
@@ -14,6 +15,9 @@ namespace Chuye.Kafka {
 
         protected Client Client {
             get { return _client; }
+        }
+        public ProducerConfig Config {
+            get { return _config; }
         }
 
         public Producer(Option option) {
@@ -46,15 +50,20 @@ namespace Chuye.Kafka {
             var offset = 0L;
             foreach (var chunk in messages.Chunking(_config.ThrottleSize)) {
                 var topicPartition = SelectNextTopicPartition(topic);
-                offset = Send(topicPartition, chunk);
+                offset = ChunkingSend(topicPartition, chunk);
             }
             return offset;
         }
 
-        public Int64 Send(TopicPartition topicPartition, IEnumerable<Message> messages) {
+        internal Int64 ChunkingSend(TopicPartition topicPartition, IEnumerable<Message> messages) {
             var offset = 0L;
             foreach (var chunk in messages.Chunking(_config.ThrottleSize)) {
-                offset = _client.Produce(topicPartition.Name, topicPartition.Partition, chunk);
+                var codec = _config.MessageCodec;
+                if (chunk.Count < 5 && messages.Sum(x => x.Value != null ? x.Value.Length : 0) < 4096) {
+                    codec = MessageCodec.None;
+                }
+                offset = _client.Produce(topicPartition.Name, topicPartition.Partition, chunk, 
+                    _config.AcknowlegeStrategy, codec);
             }
             return offset;
         }
@@ -83,15 +92,20 @@ namespace Chuye.Kafka {
             var offset = 0L;
             foreach (var chunk in messages.Chunking(_config.ThrottleSize)) {
                 var topicPartition = SelectNextTopicPartition(topic);
-                offset = await SendAsync(topicPartition, chunk);
+                offset = await ChunkingSendAsync(topicPartition, chunk);
             }
             return offset;
         }
 
-        public async Task<Int64> SendAsync(TopicPartition topicPartition, IEnumerable<Message> messages) {
+        internal async Task<Int64> ChunkingSendAsync(TopicPartition topicPartition, IEnumerable<Message> messages) {
             var offset = 0L;
             foreach (var chunk in messages.Chunking(_config.ThrottleSize)) {
-                offset = await _client.ProduceAsync(topicPartition.Name, topicPartition.Partition, chunk);
+                var codec = _config.MessageCodec;
+                if (chunk.Count < 5 && messages.Sum(x => x.Value != null ? x.Value.Length : 0) < 4096) {
+                    codec = MessageCodec.None;
+                }
+                offset = await _client.ProduceAsync(topicPartition.Name, topicPartition.Partition, chunk,
+                    _config.AcknowlegeStrategy, codec);
             }
             return offset;
         }
@@ -109,7 +123,7 @@ namespace Chuye.Kafka {
         public ThrottledProducer(Option option)
             : base(option) {
             _queues = new Dictionary<TopicPartition, ThrottleMessageQueue>();
-            _sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+            _sync   = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             _config = option.ProducerConfig;
         }
 
@@ -128,6 +142,13 @@ namespace Chuye.Kafka {
         }
 
         public override Int64 Send(String topic, IList<Message> messages) {
+            if (String.IsNullOrWhiteSpace(topic)) {
+                throw new ArgumentNullException("topic");
+            }
+            if (messages == null || messages.Count == 0) {
+                throw new ArgumentOutOfRangeException("messages");
+            }
+
             foreach (var chunk in messages.Chunking(_config.ThrottleSize)) {
                 var topicPartition = base.SelectNextTopicPartition(topic);
                 ChunkingEnqueue(topicPartition, chunk);
@@ -179,7 +200,6 @@ namespace Chuye.Kafka {
             }
             finally {
                 _sync.ExitWriteLock();
-
             }
         }
     }

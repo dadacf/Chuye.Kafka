@@ -20,7 +20,7 @@ namespace Chuye.Kafka.Protocol {
             : base(ApiKey.ProduceRequest) {
         }
 
-        public ProduceRequest(  IDictionary<String, List<Kafka.Message>> messages,
+        /*public ProduceRequest(  IDictionary<String, List<Message>> messages,
                                 Int32 partition,
                                 AcknowlegeStrategy strategy = AcknowlegeStrategy.Written)
             : base(ApiKey.ProduceRequest) {
@@ -62,16 +62,16 @@ namespace Chuye.Kafka.Protocol {
                 topicPartitions.Add(topicPartition);
             }
             TopicPartitions = topicPartitions.ToArray();
-        }
+        }*/
 
         public ProduceRequest(  String topic,
                                 Int32 partition,
-                                IList<Kafka.Message> messages,
+                                IList<Message> messages,
                                 AcknowlegeStrategy strategy = AcknowlegeStrategy.Written,
                                 MessageCodec codec = MessageCodec.None)
             : base(ApiKey.ProduceRequest) {
             if (String.IsNullOrWhiteSpace(topic)) {
-                throw new ArgumentOutOfRangeException("topicName");
+                throw new ArgumentOutOfRangeException("topic");
             }
             if (messages == null || messages.Count == 0) {
                 throw new ArgumentOutOfRangeException("messages");
@@ -172,8 +172,7 @@ namespace Chuye.Kafka.Protocol {
         public void FetchFrom(KafkaReader reader) {
             Partition      = reader.ReadInt32();
             MessageSetSize = reader.ReadInt32();
-            throw new NotImplementedException();
-            //MessageSet     = new MessageSet(this);
+            MessageSet     = new MessageSet(MessageSetSize);
             MessageSet.FetchFrom(reader);
         }
     }
