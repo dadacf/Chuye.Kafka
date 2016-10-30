@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET452
+using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -7,7 +8,9 @@ using Chuye.Kafka.Protocol.Management;
 using KellermanSoftware.CompareNetObjects;
 using Xunit;
 
+
 namespace Chuye.Kafka.Tests.Protocol {
+
     public class RequestSerializeTest {
         private readonly Random _random = new Random();
 
@@ -628,4 +631,4 @@ namespace Chuye.Kafka.Tests.Protocol {
         }
     }
 }
-
+#endif

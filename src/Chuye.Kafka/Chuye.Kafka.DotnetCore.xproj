@@ -18,5 +18,9 @@
   <ItemGroup>
     <DnxInvisibleFolder Include=".vs\" />
   </ItemGroup>
+  <ItemGroup>
+    <DnxInvisibleContent Include="Chuye.Kafka.dotnet452.nuget.targets" />
+    <DnxInvisibleContent Include="Chuye.Kafka.Net452.nuget.targets" />
+  </ItemGroup>
   <Import Project="$(VSToolsPath)\DotNet\Microsoft.DotNet.targets" Condition="'$(VSToolsPath)' != ''" />
 </Project>
