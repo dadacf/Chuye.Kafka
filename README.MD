@@ -5,9 +5,9 @@
 * 支持 dotnet core，.net 452
 * 节流、异步的 producer
 * 高级的 consumer
-    * 基于 GROUP API 的负载均衡实现，见[Kafka Client-side Assignment Proposal](https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal) 
+    * 基于 GROUP API 的负载均衡实现，见 [Kafka Client-side Assignment Proposal](https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal) 
     * 自动进度保存的、可配置的的 offset 管理策略
-* 无第3方类库依赖
+* 零第三方类库依赖
 
 ----
 
@@ -38,14 +38,14 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
 ```
 
 ### Client
-核心 API（Metadata/Send/Fetch/Offsets/Offset Commit/Offset Fetch）的实现者，除维护了 topic-partition-broker 元数据外是无状态的，不应被业务方直接调用；
+核心 API（Metadata/Produce/Fetch/Offsets/Offset Commit/Offset Fetch）的实现者，除维护了 topic-partition-broker 元数据外是无状态的，不应被业务方直接调用；
 
 ### Producer
 生产者的基本实现
 
 ```
     var producer = new Producer(option);
-    producer.Config.MessageCodec = MessageCodec.Gzip;
+    //producer.Config.MessageCodec = MessageCodec.Gzip;
     var messages = new []{ "msg#1", "msg#2"};
     producer.Send("demoTopic3", messages);
 ```
@@ -60,7 +60,7 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
     }
 ```
 
-> 注意：此模式下生产者可能不会立即发送消息，应该保证 Dispose() 得到调用。
+> 注意：此模式下生产者可能不会立即发送消息，应该保证 ThrottledProducer 实例的 Dispose() 方法得到调用。
 
 ### Consumer
 消费者的基本实现，堵塞式持续拉取消息，接受 CancellationToken 作为参数实现了协作式取消
@@ -74,26 +74,26 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
     }
 ```
 
-> 注意：此模式下消费者维护着消费进度，提交策略依赖了消费进度和时间间隔，应以 CancellationTokenSource.Cancel()　方式中止消费。
+> 注意：此模式下消费者维护着消费进度，提交策略使用消费进度和时间间隔参数，应以 CancellationTokenSource.Cancel()　方式中止消费。
 
 ----
 
 ## Concerns
 
 **Q** 生产者如何设定消息以 gzip、snappy 压缩？  
-**A** 默认不压缩消息，支持 gzip 形式压缩，见 Option.ProducerConfig.MessageCodec；消费者自动解压 gzip 后的消息；
+**A** 默认不压缩，支持 gzip，见 Option.ProducerConfig.MessageCodec；消费者自动展开 gzip 压缩后的消息；
 
 **Q** 生产者如何设定消息发送的 RequiredAcks？  
-**A** 默认使用 RequiredAcks = 1 确保消息得到发送，Option.ProducerConfig.AcknowlegeStrategy；
+**A** 默认使用 RequiredAcks = 1 确保消息得到发送，见 Option.ProducerConfig.AcknowlegeStrategy；
 
 **Q** 消费者如何设置拉取消息的大小与等待时间？  
-**A** kafka 提供了堵塞式 fetch 接口，见 Option.ConsumerConfig.FetchBytes，Option.ConsumerConfig.FetchMilliseconds；
+**A** kafka 提供了堵塞式的 fetch 接口，见 Option.ConsumerConfig.FetchBytes，Option.ConsumerConfig.FetchMilliseconds；
 
 **Q** 消费者负载均衡状态机实现的怎么样？  
-**A** 能工作，目前处理了 RebalanceInProgressCode 状态码，更多像 GroupCoordinatorNotAvailableCode 及 retry 逻辑需要后续加入；
+**A** 工作得不错，目前处理了 RebalanceInProgressCode 状态码，更多像 GroupCoordinatorNotAvailableCode 及 retry 逻辑需要后续加入；
 
-**Q** 客户端获取到 TopicMetadata 后将更新 Broker 目标而不使用初始参数，如何 hook 以调试？  
-**A** Client 对象暴露了 RequestSending 与 ResponseReceived 事件，用户可以对它们进行拦截，在进行 Socket 抓包分析，示例:
+**Q** 客户端获取到 TopicMetadata 后将直接调用 Zookeeper 提供的 Broker 地址，如何 hook 以调试？  
+**A** Client 对象暴露了 RequestSending 与 ResponseReceived 事件供用户拦截对待发送请求和已收到的响应，修改目标地址还可以定向请求例如 Socket 抓包分析，示例:
 
 ```c
     var option = new Option("ubuntu-16:9094,ubuntu-16:9093");
@@ -107,19 +107,19 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
 ```
 
 **Q** 消息者负载均衡算法、生产者消息路由策略是怎样的，能否扩展？  
-**A** 前者是整除算法，实现细节见 *Coordinato.AssigningTopicPartitions()*，后者是简单的 partition 轮换实现；可扩展的实现在计划中，添加 TraceListener 可以查看日志输出 
+**A** 前者是整除算法，实现细节见 *Coordinato.AssigningTopicPartitions()*，后者是简单的 partition 轮换实现；添加 TraceListener 可以查看日志输出；可扩展的实现在计划中。
 
 ```bash
-# 1. 启动 consumer A，以分组 demoGroupId 试图消费拥有2个分区的 demoTopic
+# 1. 启动 consumer A，以分组 demoGroupId 消费拥有2个分区的 demoTopic
 Consumer A Information: 0 : 17:16:04.534 [11] #1 Rebalace start at group 'demoGroupId'
 Consumer A Information: 0 : 17:16:04.555 [11] #2 Group coordinate got broker http://ubuntu-16:9094/ at group 'demoGroupId'
 Consumer A Information: 0 : 17:16:04.561 [11] #3 Join group 'demoGroupId', assigning topic and partitions as leader
 
-# 1.1 由于不存在其他消费者，consumer A 将两个分区 [0, 1] 分派给自己
+# 1.1 由于不存在其他消费者，consumer A 将两个分区 [0, 1] 指派给自己
 Consumer A Information: 0 : 17:16:04.596 [11] #4 Sync group 'demoGroupId', Member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' dispathced Topic 'demoTopic'(0|1)
 Consumer A Information: 0 : 17:16:04.599 [11] #5 Heartbeat of member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' at group 'demoGroupId'
 
-# 2. 启动 consumer B, 加入 demoGroupId 并试图消费 demoTopic
+# 2. 启动 consumer B, 加入 demoGroupId 试图参与消费 demoTopic
 Consumer B Information: 0 : 17:16:08.808 [11] #1 Rebalace start at group 'demoGroupId'
 Consumer B Information: 0 : 17:16:08.827 [11] #2 Group coordinate got broker http://ubuntu-16:9094/ at group 'demoGroupId'
 Consumer B Information: 0 : 17:16:13.621 [11] #3 Join group 'demoGroupId', waiting for assingments as follower
@@ -133,7 +133,7 @@ Consumer A Information: 0 : 17:16:13.620 [09] #3 Join group 'demoGroupId', assig
 Consumer A Information: 0 : 17:16:13.629 [09] #4 Sync group 'demoGroupId', Member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' dispathced Topic 'demoTopic'(0)
 Consumer A Information: 0 : 17:16:13.629 [09] #5 Heartbeat of member 'Chuye.Kafka-e0418c7f-4d34-4889-a1b5-4500977e8902' at group 'demoGroupId'
 
-# 4.1. consumer B 被分派的分区id 为 0
+# 4.1. consumer B 被分派的分区id 为 1
 Consumer B Information: 0 : 17:16:13.631 [11] #4 Sync group 'demoGroupId', Member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' dispathced Topic 'demoTopic'(1)
 Consumer B Information: 0 : 17:16:13.634 [11] #5 Heartbeat of member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' at group 'demoGroupId'
 
@@ -151,7 +151,7 @@ Consumer A Information: 0 : 17:16:40.672 [10] #5 Heartbeat of member 'Chuye.Kafk
 
 ### 关于协议
 
-Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见[A Guide To The Kafka Protocol](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol#AGuideToTheKafkaProtocol-TheAPIs)。
+Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见 [A Guide To The Kafka Protocol](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol#AGuideToTheKafkaProtocol-TheAPIs)。
 
 在前置版本的实现中，序列化效率是作者的关注重点，KafkaBinary 及相关实现花费了作者大量时间，但使用中发现有收益但带来开发复杂度、增大了调试难度，另外的问题是 doetnet core 至少是起初版本缺少了 System.ServiceModel.Channels.BufferManager 相关声明——该对象是相关实现的重要环节。
 
@@ -159,4 +159,4 @@ Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见[A Guide To T
 
 ### 关于性能
 
-早前在 UCLOUD 的 Kafka 集群上进行了不同连接数的吞吐量测试，见[Kafka-cluster-testing-on-ucloud](doc/Kafka-cluster-testing-on-ucloud.md)
+早前在 UCLOUD 的 Kafka 集群上进行了不同连接数的吞吐量测试，见 [Kafka-cluster-testing-on-ucloud](doc/Kafka-cluster-testing-on-ucloud.md)
