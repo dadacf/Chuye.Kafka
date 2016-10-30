@@ -39,6 +39,10 @@ namespace Chuye.Kafka.Protocol {
                 }
                 items.Add(item);
             }
+            var restBytes = _messageSetSize - (Int32)(reader.PositionProceeded - previousPosition); 
+            if(restBytes > 0) {
+                reader.DropBytes(restBytes);
+            }
             Items = Decompress(items).ToArray();
         }
 
