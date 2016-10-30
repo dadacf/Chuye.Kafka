@@ -21,7 +21,7 @@ namespace Chuye.Kafka.Protocol {
         public MessageSet(Int32 messageSetSize) {
             _messageSetSize = messageSetSize;
         }
-        
+
         public void FetchFrom(KafkaReader reader) {
             if (_messageSetSize == 0) {
                 Items = new MessageSetDetail[0];
@@ -30,9 +30,18 @@ namespace Chuye.Kafka.Protocol {
             var previousPosition = reader.PositionProceeded;
             var items = new List<MessageSetDetail>(32);
             while (reader.PositionProceeded - previousPosition < _messageSetSize) {
-                var item = new MessageSetDetail();
-                item.FetchFrom(reader);
+                //var item = new MessageSetDetail();
+                //item.FetchFrom(reader);
+                var maxBytes = _messageSetSize - (Int32)(reader.PositionProceeded - previousPosition);
+                MessageSetDetail item;
+                if (!MessageSetDetail.TryFetchFrom(reader, maxBytes, out item)) {
+                    break;
+                }
                 items.Add(item);
+            }
+            var restBytes = _messageSetSize - (Int32)(reader.PositionProceeded - previousPosition); 
+            if(restBytes > 0) {
+                reader.DropBytes(restBytes);
             }
             Items = Decompress(items).ToArray();
         }
@@ -77,7 +86,7 @@ namespace Chuye.Kafka.Protocol {
         public GZipMessageSet() {
         }
 
-        public GZipMessageSet(int messageSetSize) 
+        public GZipMessageSet(int messageSetSize)
             : base(messageSetSize) {
         }
 
@@ -116,6 +125,23 @@ namespace Chuye.Kafka.Protocol {
             Message.FetchFrom(reader);
         }
 
+        public static Boolean TryFetchFrom(KafkaReader reader, Int32 maxBytes, out MessageSetDetail item) {
+            if (maxBytes < 12) {
+                item = null;
+                return false;
+            }
+            item = new MessageSetDetail();
+            item.Offset = reader.ReadInt64();        //move 8
+            item.MessageSize = reader.ReadInt32();   //move 4
+            if(item.MessageSize > maxBytes - 12) {
+                item = null;
+                return false;
+            }
+            item.Message = new MessageSetItem();
+            item.Message.FetchFrom(reader);
+            return true;
+        }
+
         public void SaveTo(KafkaWriter writer) {
             writer.Write(Offset);
             //writer.Write(MessageSize);
@@ -140,22 +166,20 @@ namespace Chuye.Kafka.Protocol {
         public Byte[] Value { get; set; }
 
         public void FetchFrom(KafkaReader reader) {
-            Crc = reader.ReadInt32();                       //move 4
-            MagicByte = reader.ReadByte();                  //move 1
+            Crc        = reader.ReadInt32();                //move 4
+            MagicByte  = reader.ReadByte();                 //move 1
             Attributes = (MessageCodec)reader.ReadByte();   //move 1
-            Key = reader.ReadBytes();                       //move 4 + len(bytes) if not null
-            Value = reader.ReadBytes();                     //move 4 + len(bytes) if not null
+            Key        = reader.ReadBytes();                //move 4 + len(bytes) if not null
+            Value      = reader.ReadBytes();                //move 4 + len(bytes) if not null
         }
 
         public void SaveTo(KafkaWriter writer) {
             var crcWriter = new KafkaCrc32Writer(writer);
             crcWriter.MarkAsStart();
-
             writer.Write(MagicByte);
             writer.Write((Byte)Attributes);
             writer.Write(Key);
             writer.Write(Value);
-
             Crc = crcWriter.Caculate();
         }
     }

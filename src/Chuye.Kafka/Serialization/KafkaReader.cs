@@ -69,6 +69,11 @@ namespace Chuye.Kafka.Serialization {
             return _reader.ReadBytes(length);
         }
 
+        public Byte[] DropBytes(Int32 count) {
+            _positionProceeded += count;
+            return _reader.ReadBytes(count);
+        }
+
         public void Dispose() {
             _reader.Dispose();
         }

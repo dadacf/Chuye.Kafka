@@ -197,6 +197,7 @@ namespace Chuye.Kafka.Internal {
                 }
             }
         }
+
         private void EnsureCoordinateBrokerExsiting() {
             if (_coordinateBroker != null) {
                 return;

@@ -3,12 +3,18 @@
   "testRunner": "xunit",
   "dependencies": {
     "Chuye.Kafka": "1.0.0-*",
-    "xunit": "2.2.0-beta3-build3402",
-    "CompareNETObjects": "3.5.0"
+    "NETStandard.Library": "1.6.0"
   },
-
+  
   "frameworks": {
-    "net452": {
+    "netstandard1.6": {
+      "imports": "dnxcore50",
+      "dependencies": {
+        "System.Diagnostics.TraceSource": "4.0.0",
+        "System.Threading.Thread": "4.0.0",
+        "System.Net.Sockets": "4.1.0",
+        "System.IO.Compression": "4.1.0"
+      }
     }
   }
 }
