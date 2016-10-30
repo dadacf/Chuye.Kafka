@@ -122,6 +122,10 @@ namespace Chuye.Kafka.Protocol {
         }
 
         public static Boolean TryFetchFrom(KafkaReader reader, Int32 maxBytes, out MessageSetDetail item) {
+            if (maxBytes < 12) {
+                item = null;
+                return false;
+            }
             item = new MessageSetDetail();
             item.Offset = reader.ReadInt64();        //move 8
             item.MessageSize = reader.ReadInt32();   //move 4
