@@ -20,9 +20,9 @@ namespace Chuye.Kafka {
             get { return _brokerUris; }
         }
 
-        public ProducerConfig ProducerConfig { get; set; }
-        public ConsumerConfig ConsumerConfig { get; set; }
-        public CoordinatorConfig CoordinatorConfig { get; set; }
+        public ProducerConfig ProducerConfig { get; private set; }
+        public ConsumerConfig ConsumerConfig { get; private set; }
+        public CoordinatorConfig CoordinatorConfig { get; private set; }
 
         public Option(String brokerUrls) {
             if (String.IsNullOrWhiteSpace(brokerUrls)) {

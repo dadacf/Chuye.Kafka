@@ -63,7 +63,7 @@ namespace Chuye.Kafka.Internal {
         }
 
         private void OffsetCommit(Int32 partition, Int64 offset) {
-            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Offset commit group '{2}', topic '{3}'({4}), offset {5}",
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Offset commit group '{2}', topic '{3}'[{4}], offset {5}",
                 DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _topic, partition, offset);
             _client.OffsetCommit(_topic, partition, _groupId, offset);
         }
