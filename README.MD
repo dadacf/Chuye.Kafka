@@ -6,12 +6,12 @@
 * 节流、异步的 producer
 * 高级的 consumer
     * 基于 GROUP API 的负载均衡实现，见 [Kafka Client-side Assignment Proposal](https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal) 
-    * 自行维护消费进度
+    * 自动的 offset 管理
 * 零第三方类库依赖
 
 ----
 
-## Usage
+## USAGE
 
 ```bash
 Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
@@ -21,10 +21,6 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
 
 ```json
   "dependencies": {
-    "Microsoft.NETCore.App": {
-      "type": "platform",
-      "version": "1.0.1"
-    },
     "Chuye.Kafka": "1.0.1-beta",
     "System.Diagnostics.TraceSource": "4.0.0"    
   },
@@ -76,12 +72,13 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
     }
 ```
 
->- 注意：Consumer 维护着消费进度，提交策略使用消费进度和时间间隔参数，总是应该以 CancellationTokenSource.Cancel() 方式**暂停**消费。
->- 进程退出、或者 Consumer 实例的 Dispose() 方法调用后才会真正离开分组，并重新触发同组消费者的负载均衡过程。
+> 注意：Consumer 使用了进度跨度与和时间间隔参数判断是否进行 offset commit，总是应该以 CancellationTokenSource.Cancel() 方式**暂停**消费以避免丢失进度。
+
+> 进程退出、或者 Consumer 实例的 Dispose() 方法调用后才会真正离开分组，并重新触发同组消费者的负载均衡过程。
 
 ----
 
-## Concerns
+## CONCERNS
 
 **Q** 生产者如何设定消息以 gzip、snappy 压缩？  
 **A** 默认不压缩，支持 gzip，见 Option.ProducerConfig.MessageCodec；消费者自动展开 gzip 压缩的消息；
@@ -137,8 +134,10 @@ Consumer A Information: 0 : 17:16:13.629 [09] #5 Heartbeat of member 'Chuye.Kafk
 Consumer B Information: 0 : 17:16:13.631 [11] #4 Sync group 'demoGroupId', Member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' dispathced Topic 'demoTopic'[1]
 Consumer B Information: 0 : 17:16:13.634 [11] #5 Heartbeat of member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' at group 'demoGroupId'
 
-# 5. consumer B 离开分组，consumer A 再次负载均衡
+# 5. consumer B 离开分组
 Consumer B Information: 0 : 17:16:36.621 [09] #6 Member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' leave group 'demoGroupId'
+
+# 6. consumer A 再次负载均衡
 Consumer A Information: 0 : 17:16:40.663 [10] #6 Need rebalace at group 'demoGroupId' for 'RebalanceInProgressCode'
 Consumer A Information: 0 : 17:16:40.663 [10] #1 Rebalace start at group 'demoGroupId'
 Consumer A Information: 0 : 17:16:40.667 [10] #3 Join group 'demoGroupId', assigning topic and partitions as leader
@@ -153,7 +152,7 @@ Consumer A Information: 0 : 17:16:40.672 [10] #5 Heartbeat of member 'Chuye.Kafk
 
 ----
 
-## More
+## MORE
 
 ### 关于协议
 Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见 [A Guide To The Kafka Protocol](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol#AGuideToTheKafkaProtocol-TheAPIs)。
@@ -164,3 +163,6 @@ Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见 [A Guide To 
 
 ### 关于性能
 早前在 UCLOUD 的 Kafka 集群上进行了不同连接数的吞吐量测试，见 [Kafka-cluster-testing-on-ucloud](doc/Kafka-cluster-testing-on-ucloud.md)
+
+### 关于我
+欢迎参与讨论和贡献代码，QQ 群 225437313
