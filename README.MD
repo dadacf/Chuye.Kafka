@@ -60,21 +60,23 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
     }
 ```
 
-> 注意：此模式下生产者可能不会立即发送消息，应该保证 ThrottledProducer 实例的 Dispose() 方法得到调用。
+> 注意：ThrottledProducer 可能不会立即发送消息，应该保证 ThrottledProducer 实例的 Dispose() 方法得到调用。
 
 ### Consumer
 消费者的基本实现，堵塞式持续拉取消息，接受 CancellationToken 作为参数实现了协作式取消
 
 ```c
     var cts = new CancellationTokenSource();
-    var consumer = new Consumer(option, "demoGroupId", "demoTopic");
-    consumer.Initialize();
-    foreach (var msg in consumer.Fetch(cts.Token)) {
-        //do stuff with msg
+    using (var consumer = new Consumer(option, "demoGroupId", "demoTopic")) {
+        consumer.Initialize();
+        foreach (var msg in consumer.Fetch(cts.Token)) {
+            //do stuff with msg
+        }
     }
 ```
 
-> 注意：此模式下消费者维护着消费进度，提交策略使用消费进度和时间间隔参数，应以 CancellationTokenSource.Cancel()　方式中止消费。
+> 注意：Consumer 维护着消费进度，提交策略使用消费进度和时间间隔参数，问题应该使用 CancellationTokenSource.Cancel()　以协作式取消方式停止消费。
+> 进程退出、或者 Consumer 实例的 Dispose() 方法调用后才会真正离开分组、重新触发其他消费者的负载均衡。
 
 ----
 
@@ -138,6 +140,7 @@ Consumer B Information: 0 : 17:16:13.631 [11] #4 Sync group 'demoGroupId', Membe
 Consumer B Information: 0 : 17:16:13.634 [11] #5 Heartbeat of member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' at group 'demoGroupId'
 
 # 5. consumer B 离开分组，consumer A 再次负载均衡
+Consumer B Information: 0 : 17:16:36.621 [09] #6 Member 'Chuye.Kafka-08516ce2-6d21-452a-8782-64d0928ddae1' leave group 'demoGroupId'
 Consumer A Information: 0 : 17:16:40.663 [10] #6 Need rebalace at group 'demoGroupId' for 'RebalanceInProgressCode'
 Consumer A Information: 0 : 17:16:40.663 [10] #1 Rebalace start at group 'demoGroupId'
 Consumer A Information: 0 : 17:16:40.667 [10] #3 Join group 'demoGroupId', assigning topic and partitions as leader

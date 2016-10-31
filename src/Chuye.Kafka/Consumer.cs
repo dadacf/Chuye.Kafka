@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Chuye.Kafka.Internal;
 
 namespace Chuye.Kafka {
-    public class Consumer {
+    public class Consumer: IDisposable {
         private readonly Client _client;
         private readonly Coordinator _coordinator;
         private readonly KnownPartitionDispatcher _partitionDispatcher;
@@ -95,7 +95,7 @@ namespace Chuye.Kafka {
 
             var partition = _partitionDispatcher.SelectParition();
             var offset = _offsets.GetCurrentOffset(partition);
-            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Fetch group '{2}', topic '{3}'({4}), offset {5}",
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] Fetch group '{2}', topic '{3}'[{4}], offset {5}",
                 DateTime.Now, Thread.CurrentThread.ManagedThreadId, GroupId, Topic, partition, offset);
             var messages = _client.Fetch(Topic, partition, offset, maxBytes: maxBytes, maxWaitTime: maxWaitTime).ToArray();
             _messages = new MessageChunk(messages, partition);
@@ -122,6 +122,12 @@ namespace Chuye.Kafka {
             }
             if (_messages.Count > 0) {
                 _offsets.MoveForward(_messages.Partition);
+            }
+        }
+
+        public void Dispose() {
+            if (_coordinator.MemberId != null) {
+                _coordinator.LeaveGroup();
             }
         }
     }
