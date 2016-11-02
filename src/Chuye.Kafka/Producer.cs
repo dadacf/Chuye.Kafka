@@ -26,6 +26,13 @@ namespace Chuye.Kafka {
             _partitionDispatcher = new TopicPartitionDispatcher(_client.TopicBrokerDispatcher);
         }
 
+        public void UseCodec(MessageCodec codec) {
+            if (codec == MessageCodec.Snappy) {
+                throw new ArgumentOutOfRangeException("codec", "Snappy not support yet");
+            }
+            _config.MessageCodec = codec;
+        }
+
         public virtual Int64 Send(String topic, params String[] messages) {
             if (String.IsNullOrWhiteSpace(topic)) {
                 throw new ArgumentNullException("topic");
