@@ -21,13 +21,13 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
 
 ```json
   "dependencies": {
-    "Chuye.Kafka": "1.0.1-beta",
+    "Chuye.Kafka": "1.0.2-beta",
     "System.Diagnostics.TraceSource": "4.0.0"    
-  },
+  }
 ```
 
 ### Option
-接受 Broker 集群地址作为参数，它应单例维护生命周期
+接受 Broker 集群地址作为参数，它应以单例维护生命周期
 
 ```c
     var option = new Option("ubuntu-16:9094,ubuntu-16:9093");
@@ -72,9 +72,7 @@ Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
     }
 ```
 
-> 注意：Consumer 使用了进度跨度与和时间间隔参数判断是否进行 offset commit，总是应该以 CancellationTokenSource.Cancel() 方式**暂停**消费以避免丢失进度。
-
-> 进程退出、或者 Consumer 实例的 Dispose() 方法调用后才会真正离开分组，并重新触发同组消费者的负载均衡过程。
+> 注意：Consumer 使用了进度跨度与和时间间隔参数判断是否进行 offset commit，总是应该调用 CancellationTokenSource.Cancel() 以**暂停**消费、避免丢失进度；进程退出、或者 Consumer 实例的 Dispose() 方法调用后才会真正离开分组，并重新触发同组消费者的负载均衡过程。
 
 ----
 
@@ -157,9 +155,9 @@ Consumer A Information: 0 : 17:16:40.672 [10] #5 Heartbeat of member 'Chuye.Kafk
 ### 关于协议
 Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见 [A Guide To The Kafka Protocol](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol#AGuideToTheKafkaProtocol-TheAPIs)。
 
-在前置版本的实现中，序列化效率是作者的关注重点，KafkaBinary 及相关实现花费了作者大量时间，但使用中发现有收益但带来开发复杂度、增大了调试难度，另外的问题是 doetnet core 至少是起初版本缺少了 System.ServiceModel.Channels.BufferManager 相关声明——该对象是相关实现的重要环节。
+在前置版本的实现中，序列化效率及 KafkaBinary 是作者的关注重点，使用中发现带来巨大的复杂度和调试难度，另外的问题是 doetnet core 至少是起初版本缺少了 System.ServiceModel.Channels.BufferManager 命名空间——该对象是相关实现的重要环节。
 
-出于上述顾虑及迟早迁移到 dotnet core 的想法，1.* 版本将负载均衡及 Offset 维护置于更重要的位置，在 MemoryStream 的基础上实现了协议部分的序列化与反序列化逻辑。
+出于上述顾虑及尽早迁移到 dotnet core 的想法，1.0 版本将负载均衡及 Offset 维护置于更重要的位置，在 MemoryStream 的基础上实现了协议部分的序列化与反序列化逻辑。
 
 ### 关于性能
 早前在 UCLOUD 的 Kafka 集群上进行了不同连接数的吞吐量测试，见 [Kafka-cluster-testing-on-ucloud](doc/Kafka-cluster-testing-on-ucloud.md)
