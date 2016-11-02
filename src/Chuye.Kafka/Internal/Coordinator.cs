@@ -33,6 +33,10 @@ namespace Chuye.Kafka.Internal {
             get { return _state; }
         }
 
+        public String MemberId {
+            get { return _memberId; }
+        }
+
         public Coordinator(Option option, String groupId) {
             _option              = option;
             _client              = option.GetSharedClient();
@@ -88,8 +92,8 @@ namespace Chuye.Kafka.Internal {
             OnStateChange(CoordinatorState.Stable);
 
             //4. Heartbeat
-            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #5 Heartbeat of member '{2}' at group '{3}'",
-                DateTime.Now, Thread.CurrentThread.ManagedThreadId, _memberId, _groupId);
+            Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #5 Heartbeat at group '{2}', member '{3}' ",
+                DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _memberId);
             _heartbeatTimer.Change(0, Timeout.Infinite);
         }
 
@@ -104,9 +108,9 @@ namespace Chuye.Kafka.Internal {
             if (assignment.PartitionAssignments != null && assignment.PartitionAssignments.Count > 0) {
                 foreach (var partitionAssignment in assignment.PartitionAssignments) {
                     if (partitionAssignment.Partitions.Length > 0) {
-                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', Member '{3}' dispathced Topic '{4}'({5})",
+                        Trace.TraceInformation("{0:HH:mm:ss.fff} [{1:d2}] #4 Sync group '{2}', Member '{3}' dispathced Topic '{4}'[{5}]",
                             DateTime.Now, Thread.CurrentThread.ManagedThreadId, _groupId, _memberId,
-                            partitionAssignment.Topic, String.Join("|", partitionAssignment.Partitions.OrderBy(x => x)));
+                            partitionAssignment.Topic, String.Join(",", partitionAssignment.Partitions.OrderBy(x => x)));
                         _partitionAssignments.Add(partitionAssignment.Topic, partitionAssignment.Partitions);
                     }
                     else {
