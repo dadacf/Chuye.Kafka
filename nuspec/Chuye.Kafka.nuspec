@@ -6,14 +6,14 @@
     <title>Chuye.Kafka</title>
     <authors>jusfrw</authors>
     <owners>jusfrw</owners>
-    <licenseUrl>https://github.com/jusfr/Chuye.Kafka/LICENSE</licenseUrl>
+    <licenseUrl>https://github.com/jusfr/Chuye.Kafka/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/jusfr/Chuye.Kafka</projectUrl>
     <iconUrl>https://www.nuget.org/Content/Images/packageDefaultIcon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Kafka driver implementation for dotnet core</description>
+    <description>Kafka driver implementation for .NET and dotnet Core based on version 0.9, component of Chuye of 7cm — </description>
     <releaseNotes>This is a initial release.</releaseNotes>
     <copyright>Copyright 2016</copyright>
-    <tags>Chuye Kakfa</tags>
+    <tags>Chuye Kakfa Dotnet</tags>
     <dependencies />
   </metadata>
   <files>

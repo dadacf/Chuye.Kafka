@@ -14,14 +14,14 @@
 ## USAGE
 
 ```bash
-Install-Package Chuye.Kafka –IncludePrerelease –version 1.0.1-beta
+Install-Package Chuye.Kafka –Version 1.0.2
 ```
 
 对于 dotnet core,
 
 ```json
   "dependencies": {
-    "Chuye.Kafka": "1.0.2-beta",
+    "Chuye.Kafka": "1.0.2",
     "System.Diagnostics.TraceSource": "4.0.0"    
   }
 ```
