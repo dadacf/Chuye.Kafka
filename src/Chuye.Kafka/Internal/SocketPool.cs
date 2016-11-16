@@ -33,8 +33,7 @@ namespace Chuye.Kafka.Internal {
             var socket = base.AcquireItem();
             while (!IsConnected(socket)) {
                 DetachItem(socket);
-                socket = AcquireItem();
-                socket.Connect(_uri.Host, _uri.Port);
+                socket = base.AcquireItem();
             }
             return socket;
         }

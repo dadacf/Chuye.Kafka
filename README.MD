@@ -14,7 +14,7 @@
 ## USAGE
 
 ```bash
-Install-Package Chuye.Kafka –Version 1.0.2
+Install-Package Chuye.Kafka
 ```
 
 对于 dotnet core,
