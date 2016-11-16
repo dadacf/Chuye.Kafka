@@ -12,12 +12,20 @@ namespace ClientDemo {
         static void Main(String[] args) {
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
 
+            //StartClient(); return;
+
             var cts = new CancellationTokenSource();
             Task.Run(() => StartConsumer(cts.Token));
             Task.Run(() => StartProducer(cts.Token));
 
             Console.ReadLine();
             cts.Cancel();
+        }
+
+        private static void StartClient() {
+            var option = new Option("192.168.0.220:9092");
+            var client = option.GetSharedClient();
+            var resp = client.Metadata("demoTopic");
         }
 
         private static void StartProducer(CancellationToken token) {
