@@ -49,7 +49,7 @@ namespace Chuye.Kafka {
         private void Coordinator_StateChanged(Object sender, CoordinatorStateChangedEventArgs e) {
             if (e.State == CoordinatorState.Stable) {
                 if (_offsets != null) {
-                    _offsets.MoveForward(_messages.Partition);
+                    _offsets.SubmitSaved(_messages.Partition);
                 }
                 var partitionAssigned = _coordinator.GetPartitionAssigned(Topic);
                 _partitionDispatcher.ChangeKnown(partitionAssigned);
@@ -110,25 +110,25 @@ namespace Chuye.Kafka {
                 EnsureMessageFetched();
                 foreach (var item in _messages.NextAll()) {
                     if (token.IsCancellationRequested) {
-                        _offsets.MoveForward(_messages.Partition);
                         break;
                     }
                     yield return item;
                     _offsets.MoveForward(_messages.Partition, item.Offset);
                 }
-                if (_messages.Count > 0) {
+                //Sumbit current message chunk offset
+                if (_messages.Count > 0 && !token.IsCancellationRequested) {
                     _offsets.MoveForward(_messages.Partition, _messages.EndingOffset, true);
                 }
             }
-            if (_messages.Count > 0) {
-                _offsets.MoveForward(_messages.Partition);
-            }
+            //Sumbit current saved offset
+            _offsets.SubmitSaved(_messages.Partition);
         }
 
         public void Dispose() {
             if (_coordinator.MemberId != null) {
                 _coordinator.LeaveGroup();
             }
+            _offsets.SubmitSaved();
         }
     }
 }
