@@ -52,6 +52,12 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Chuye.Kafka\Chuye.Kafka.DotnetCore.xproj">
+      <Project>{bf67cea9-ad71-40b1-9583-01700d10a360}</Project>
+      <Name>Chuye.Kafka.DotnetCore</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

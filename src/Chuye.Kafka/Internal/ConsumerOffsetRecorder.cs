@@ -28,15 +28,6 @@ namespace Chuye.Kafka.Internal {
             _lastSubmit     = DateTime.UtcNow;
             _sync           = new Object();
         }
-
-        public void MoveForward(Int32 partition) {
-            var index = Array.IndexOf(_partitions, partition);
-            if (_offsetSubmited[index] < _offsetSaved[index]) {
-                OffsetCommit(partition, _offsetSaved[index]);
-                _offsetSubmited[index] = _offsetSaved[index];
-            }
-        }
-
         public void MoveForward(Int32 partition, Int64 offset) {
             MoveForward(partition, offset, false);
         }
@@ -59,6 +50,20 @@ namespace Chuye.Kafka.Internal {
                     OffsetCommit(partition, _offsetSaved[index]);
                     _offsetSubmited[index] = _offsetSaved[index];
                 }
+            }
+        }
+
+        public void SubmitSaved() {
+            foreach (var partition in _partitions) {
+                SubmitSaved(partition);
+            }
+        }
+
+        public void SubmitSaved(Int32 partition) {
+            var index = Array.IndexOf(_partitions, partition);
+            if (_offsetSubmited[index] < _offsetSaved[index]) {
+                OffsetCommit(partition, _offsetSaved[index]);
+                _offsetSubmited[index] = _offsetSaved[index];
             }
         }
 

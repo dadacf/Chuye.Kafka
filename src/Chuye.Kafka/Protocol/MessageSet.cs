@@ -58,7 +58,7 @@ namespace Chuye.Kafka.Protocol {
                     var buffer = Compress.GZip.Decompress(item.Message.Value);
                     using (var stream = new MemoryStream(buffer))
                     using (var reader = new KafkaReader(stream)) {
-                        var set = new GZipMessageSet(_messageSetSize);
+                        var set = new GZipMessageSet(buffer.Length);
                         set.FetchFrom(reader);
                         foreach (var item2 in set.Items) {
                             yield return item2;
