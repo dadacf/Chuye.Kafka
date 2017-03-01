@@ -6,13 +6,14 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{53149E6B-88CB-4E06-B5BB-2816F38389A2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4E0E51D9-3B81-4914-86A1-237028369E88}"
-	ProjectSection(SolutionItems) = preProject
-		global.json = global.json
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{40771CFB-C5A0-4F65-AC0A-587372855081}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chuye.Kafka.dotnet452", "src\Chuye.Kafka\Chuye.Kafka.dotnet452.csproj", "{898D0377-63D3-4638-9C72-28E1F9A051B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chuye.Kafka.Test.dotnet452", "test\Chuye.Kafka.Test\Chuye.Kafka.Test.dotnet452.csproj", "{DBD56401-D8B0-4B4C-B21E-BDF1798C5DC9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientDemo", "test\ClientDemo\ClientDemo.csproj", "{CDC7A70A-1F42-472C-B193-D15A985813E4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,11 +25,21 @@ Global
 		{898D0377-63D3-4638-9C72-28E1F9A051B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{898D0377-63D3-4638-9C72-28E1F9A051B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{898D0377-63D3-4638-9C72-28E1F9A051B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBD56401-D8B0-4B4C-B21E-BDF1798C5DC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBD56401-D8B0-4B4C-B21E-BDF1798C5DC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBD56401-D8B0-4B4C-B21E-BDF1798C5DC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBD56401-D8B0-4B4C-B21E-BDF1798C5DC9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDC7A70A-1F42-472C-B193-D15A985813E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDC7A70A-1F42-472C-B193-D15A985813E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDC7A70A-1F42-472C-B193-D15A985813E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDC7A70A-1F42-472C-B193-D15A985813E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{898D0377-63D3-4638-9C72-28E1F9A051B6} = {53149E6B-88CB-4E06-B5BB-2816F38389A2}
+		{DBD56401-D8B0-4B4C-B21E-BDF1798C5DC9} = {40771CFB-C5A0-4F65-AC0A-587372855081}
+		{CDC7A70A-1F42-472C-B193-D15A985813E4} = {40771CFB-C5A0-4F65-AC0A-587372855081}
 	EndGlobalSection
 EndGlobal

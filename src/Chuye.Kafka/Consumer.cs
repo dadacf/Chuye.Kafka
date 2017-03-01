@@ -53,7 +53,9 @@ namespace Chuye.Kafka {
                 }
                 var partitionAssigned = _coordinator.GetPartitionAssigned(Topic);
                 _partitionDispatcher.ChangeKnown(partitionAssigned);
-                _offsets = new ConsumerOffsetRecorder(this, partitionAssigned);
+                if (partitionAssigned.Length > 0) {
+                    _offsets = new ConsumerOffsetRecorder(this, partitionAssigned);
+                }
             }
         }
 
@@ -91,6 +93,11 @@ namespace Chuye.Kafka {
             }
             if (_coordinator.State != CoordinatorState.Stable) {
                 throw new InvalidOperationException("Load balancing is still not complete");
+            }
+
+            if (_partitionDispatcher.Paritions.Length == 0) {
+                Thread.Sleep(1000);
+                return;
             }
 
             var partition = _partitionDispatcher.SelectParition();

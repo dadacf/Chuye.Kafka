@@ -80,9 +80,9 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Chuye.Kafka\Chuye.Kafka.DotnetCore.xproj">
-      <Project>{bf67cea9-ad71-40b1-9583-01700d10a360}</Project>
-      <Name>Chuye.Kafka.DotnetCore</Name>
+    <ProjectReference Include="..\..\src\Chuye.Kafka\Chuye.Kafka.dotnet452.csproj">
+      <Project>{898d0377-63d3-4638-9c72-28e1f9a051b6}</Project>
+      <Name>Chuye.Kafka.dotnet452</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
