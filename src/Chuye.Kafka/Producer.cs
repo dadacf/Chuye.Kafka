@@ -118,7 +118,7 @@ namespace Chuye.Kafka {
         }
 
         protected virtual TopicPartition SelectNextTopicPartition(String topic) {
-            return _partitionDispatcher.SelectPartition(topic);
+            return _partitionDispatcher.SelectRandomPartition(topic);
         }
     }
 

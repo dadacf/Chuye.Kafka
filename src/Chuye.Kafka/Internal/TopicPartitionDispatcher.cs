@@ -30,6 +30,11 @@ namespace Chuye.Kafka.Internal {
             return sequence;
         }
 
+        public TopicPartition SelectRandomPartition(String topic) {
+            var topicPartitions = SelectPartitions(topic);
+            return topicPartitions[Math.Abs(Guid.NewGuid().GetHashCode()) % topicPartitions.Count];
+        }
+
         public TopicPartition SelectPartition(String topic) {
             Int32 sequence = Sequential(topic);
             var topicPartitions = SelectPartitions(topic);
