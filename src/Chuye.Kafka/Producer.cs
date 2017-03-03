@@ -209,7 +209,7 @@ namespace Chuye.Kafka {
 #endif
         }
 
-        public void Dispose() {
+        public void Flush() {
             _sync.EnterWriteLock();
             try {
                 foreach (var queue in _queues) {
@@ -219,6 +219,13 @@ namespace Chuye.Kafka {
             }
             finally {
                 _sync.ExitWriteLock();
+            }
+        }
+
+        public void Dispose() {
+            Flush();
+            if (_sync != null) {
+                _sync.Dispose();
             }
         }
     }
