@@ -17,11 +17,11 @@
 Install-Package Chuye.Kafka
 ```
 
-对于 dotnet core,
+对于 dotnet core, ~~项目基于 1.0.1，由于1.1.0 的配置文件变更，暂未升级~~
 
 ```json
   "dependencies": {
-    "Chuye.Kafka": "1.0.2",
+    "Chuye.Kafka": "1.0.4",
     "System.Diagnostics.TraceSource": "4.0.0"    
   }
 ```
@@ -162,5 +162,5 @@ Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见 [A Guide To 
 ### 关于性能
 早前在 UCLOUD 的 Kafka 集群上进行了不同连接数的吞吐量测试，见 [Kafka-cluster-testing-on-ucloud](doc/Kafka-cluster-testing-on-ucloud.md)
 
-### 关于我
+### 关于参与
 欢迎参与讨论和贡献代码，QQ 群 225437313

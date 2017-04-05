@@ -13,6 +13,7 @@ namespace ClientDemo {
             Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
 
             //StartClient(); return;
+            StartConsumer();return;
 
             var cts = new CancellationTokenSource();
             Task.Run(() => StartConsumer(cts.Token));
@@ -20,6 +21,24 @@ namespace ClientDemo {
 
             Console.ReadLine();
             cts.Cancel();
+        }
+
+        private static void StartConsumer() {
+            var option = new Option("http://ubuntu-16:9092");
+            var client = option.GetSharedClient();
+            client.OffsetCommit("pay-order-paid", 0, "dev", 0L);
+
+            var cts = new CancellationTokenSource();
+            using (var consumer = new Consumer(option, "dev", "pay-order-paid")) {
+                consumer.Initialize();
+                foreach (OffsetMessage msg in consumer.Fetch(cts.Token)) {
+                    Console.WriteLine(msg);
+                    if (msg.Offset == 5) {
+                        //cts.Cancel();
+                        break;
+                    }
+                }
+            }
         }
 
         private static void StartClient() {
