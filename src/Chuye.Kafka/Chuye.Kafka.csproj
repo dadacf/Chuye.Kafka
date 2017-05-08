@@ -7,10 +7,10 @@
     <Version>1.1.0</Version>
     <Authors>jusfrw</Authors>
     <Owners>jusfrw</Owners>
-    <LicenseUrl>https://github.com/jusfr/Chuye.Kafka/blob/master/LICENSE</LicenseUrl>
-    <ProjectUrl>https://github.com/jusfr/Chuye.Kafka</ProjectUrl>
-    <IconUrl>https://www.nuget.org/Content/Images/packageDefaultIcon.png</IconUrl>
-    <RequireLicenseAcceptance>false</RequireLicenseAcceptance>
+    <PackageIconUrl>https://www.nuget.org/Content/Images/packageDefaultIcon.png</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/jusfr/Chuye.Kafka</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/jusfr/Chuye.Kafka/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Kafka driver implementation for dotnet based on version 0.9, component of Chuye of 7cm</Description>
   </PropertyGroup>
 
