@@ -1,30 +1,27 @@
 ﻿# Kafka driver implementation for .NET & Core
 
-本类库基于 **kafka 0.9** 协议，包含的实现：
+Based on [**kafka 0.9**](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol)
 
-* 支持 dotnet core，.net 452
-* 节流、异步的 producer
-* 高级的 consumer
-    * 基于 GROUP API 的负载均衡实现，见 [Kafka Client-side Assignment Proposal](https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal) 
-    * 自动的 offset 管理
-* 零第三方类库依赖
+* dotnet core supported
+* throttled asynchronous producer
+* advanced consumer
+    * Rebalance bashed on [Kafka Client-side Assignment Proposal](https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal) 
+    * Automatic offset management
+* zero third-party dependency
 
 ----
 
-## USAGE
+## Get Packages
 
 ```bash
 Install-Package Chuye.Kafka
 ```
 
-对于 dotnet core, ~~项目基于 1.0.1，由于1.1.0 的配置文件变更，暂未升级~~
+may be `System.Net.Sockets, System.Threading.Thread` needed
 
-```json
-  "dependencies": {
-    "Chuye.Kafka": "1.0.4",
-    "System.Diagnostics.TraceSource": "4.0.0"    
-  }
-```
+----
+
+## Get Started
 
 ### Option
 接受 Broker 集群地址作为参数，它应以单例维护生命周期
@@ -145,22 +142,12 @@ Consumer A Information: 0 : 17:16:40.672 [10] #5 Heartbeat of member 'Chuye.Kafk
 
 ----
 
+### About Performance
+早前在 UCLOUD 的 Kafka 集群上进行了不同连接数的吞吐量测试，见 [Kafka-cluster-testing-on-ucloud](doc/Kafka-cluster-testing-on-ucloud.md)
+
+
 ## LICENCE
 [Apache-2.0](https://github.com/jusfr/Chuye.Kafka/blob/master/LICENSE)
 
-----
-
-## MORE
-
-### 关于协议
-Chuye.Kafka 完整实现了 Apache Kafka 0.9* 版本的协议，见 [A Guide To The Kafka Protocol](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol#AGuideToTheKafkaProtocol-TheAPIs)。
-
-在前置版本的实现中，序列化效率及 KafkaBinary 是作者的关注重点，使用中发现带来巨大的复杂度和调试难度，另外的问题是 doetnet core 至少是起初版本缺少了 System.ServiceModel.Channels.BufferManager 命名空间——该对象是相关实现的重要环节。
-
-出于上述顾虑及尽早迁移到 dotnet core 的想法，1.0 版本将负载均衡及 Offset 维护置于更重要的位置，在 MemoryStream 的基础上实现了协议部分的序列化与反序列化逻辑。
-
-### 关于性能
-早前在 UCLOUD 的 Kafka 集群上进行了不同连接数的吞吐量测试，见 [Kafka-cluster-testing-on-ucloud](doc/Kafka-cluster-testing-on-ucloud.md)
-
-### 关于参与
+### Contributing / Pull Requests
 欢迎参与讨论和贡献代码，QQ 群 225437313

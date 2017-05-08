@@ -22,7 +22,7 @@ namespace Chuye.Kafka.Internal {
         private Timer _heartbeatTimer;
         private CoordinatorState _state;
         private Dictionary<String, Int32[]> _partitionAssignments;
-        private Exception _backgroudException;
+        //private Exception _backgroudException;
 
         //todo: 使用 memeber-partition 记录分配的 partition 数量
 
@@ -38,9 +38,9 @@ namespace Chuye.Kafka.Internal {
             get { return _memberId; }
         }
 
-        public Exception BackgroudException {
-            get { return _backgroudException; }
-        }
+        //public Exception BackgroudException {
+        //    get { return _backgroudException; }
+        //}
 
         public Coordinator(Option option, String groupId) {
             _option              = option;
